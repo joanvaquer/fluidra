@@ -1,0 +1,16 @@
+{
+  "manuals": [
+    {
+      "doc_id": "victoria-plus-silent-iom",
+      "file": "user_manual.pdf",
+      "product": "Victoria Plus Silent",
+      "product_family": "pool pump",
+      "brand": "AstralPool",
+      "revision": "Cod. 05085-0008 Rev. 09",
+      "sections": [
+        {"language": "en", "first_page": 5, "last_page": 14}
+      ],
+      "troubleshooting": "victoria_plus_silent_troubleshooting.json"
+    }
+  ]
+}

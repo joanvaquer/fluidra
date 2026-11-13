@@ -1,0 +1,33 @@
+{
+  "doc_id": "victoria-plus-silent-iom",
+  "product": "Victoria Plus Silent",
+  "source_page": 13,
+  "note": "Hand-curated from the troubleshooting matrix on page 13 (English section). Text extraction loses the symptom/cause dots, so this table is transcribed from the rendered page and should be reviewed by a product expert.",
+  "symptoms": [
+    {"id": 1, "label": "The pump is not primed",
+     "keywords": ["prime", "primed", "priming", "self-priming", "no water", "air", "suction", "cebar", "ceba", "amorcer"]},
+    {"id": 2, "label": "The pump only releases a small flow of water",
+     "keywords": ["flow", "low flow", "small flow", "weak", "pressure", "little water", "caudal", "debit"]},
+    {"id": 3, "label": "The pump makes a noise",
+     "keywords": ["noise", "noisy", "loud", "vibration", "vibrates", "rattle", "ruido", "bruit"]},
+    {"id": 4, "label": "The pump will not start",
+     "keywords": ["will not start", "won't start", "doesn't start", "does not start", "no start", "not starting", "dead", "no arranca"]},
+    {"id": 5, "label": "The motor is making a noise but will not start",
+     "keywords": ["hum", "humming", "buzz", "buzzing", "noise but", "makes noise and", "noise and does not start", "noise and won't start"]},
+    {"id": 6, "label": "The motor has stopped",
+     "keywords": ["stopped", "stops", "shuts off", "shut off", "cuts out", "trips", "tripping", "overheat", "overheating", "thermal", "se para", "se detiene"]}
+  ],
+  "rows": [
+    {"cause": "Air entering the suction pipe", "solution": "Check the condition of connections and seals on the suction pipe", "symptoms": [1, 2]},
+    {"cause": "Filter cap badly sealed", "solution": "Clean the filter cap and check the condition of the rubber seal", "symptoms": [1]},
+    {"cause": "Motor turning in wrong direction", "solution": "Invert 2 power phases", "symptoms": [1, 2]},
+    {"cause": "Wrong voltage", "solution": "Check the voltage on the rating plate and that of the mains", "symptoms": [1, 2, 4]},
+    {"cause": "Pre-filter blocked", "solution": "Clean the filter", "symptoms": [2]},
+    {"cause": "Load loss in the installation", "solution": "Prevent parts from causing load loss wherever possible", "symptoms": [2]},
+    {"cause": "Pump incorrectly secured", "solution": "Secure the pump correctly", "symptoms": [3]},
+    {"cause": "Motor blocked", "solution": "Remove the motor and contact the technical service", "symptoms": [5]},
+    {"cause": "Increased temperature in the terminal box due to electric arc", "solution": "Check the junction box connections", "symptoms": [6]},
+    {"cause": "The thermal protection trips", "solution": "Connect the cables correctly to the junction boxes", "symptoms": [6]},
+    {"cause": "Incorrect junction box connections", "solution": "Tighten the cable correctly to the junction box / Adapt the size of the cable connection to the junction box", "symptoms": [6]}
+  ]
+}
