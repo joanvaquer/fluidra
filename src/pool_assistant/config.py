@@ -10,10 +10,12 @@ from pathlib import Path
 # ROOT is the project folder: this file is src/pool_assistant/config.py, so two levels up.
 ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = ROOT / "data"
-MANIFEST_PATH = DATA_DIR / "manuals" / "manifest.json"  # which manuals exist and which pages to index
-CURATED_DIR = DATA_DIR / "curated"                      # hand-transcribed troubleshooting tables
-INDEX_PATH = DATA_DIR / "index" / "chunks.jsonl"        # the manual split into passages (built on first run)
-PDF_DIR = ROOT / "Fluidra_GenAI_Engineer_Technical_Assessment_v1"  # where the PDF manuals are
+PDF_PATH = ROOT / "Fluidra_GenAI_Engineer_Technical_Assessment_v1" / "user_manual.pdf"  # the manual
+# the manual's troubleshooting table, transcribed by hand (it also gives the product name)
+TROUBLESHOOTING_PATH = DATA_DIR / "curated" / "astral_pool_troubleshooting.json"
+INDEX_PATH = DATA_DIR / "index" / "chunks.jsonl"  # the manual split into passages (built on first run)
+# The manual repeats its content in 9 languages; only the English pages are indexed.
+FIRST_PAGE, LAST_PAGE = 5, 14
 
 # Address of the local Ollama server; can be changed with the OLLAMA_HOST environment variable.
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434")

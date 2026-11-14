@@ -1,8 +1,8 @@
-"""Rebuild the chunk index from the manuals in data/manuals/manifest.json.
+"""Rebuild the chunk index from the manual (config.PDF_PATH) and its troubleshooting table.
 
     python scripts/ingest.py
 
-Run it after adding or changing a manual. (The app also builds the index by itself the first
+Run it after changing the manual, its page range or the troubleshooting table. (The app also builds the index by itself the first
 time, if data/index/chunks.jsonl doesn't exist.)
 """
 
@@ -15,7 +15,7 @@ from pool_assistant.knowledge.ingestion import build_chunks, write_index
 
 
 def main() -> None:
-    # read the PDFs, split them into passages and save them to data/index/chunks.jsonl
+    # read the PDF, split it into passages and save them to data/index/chunks.jsonl
     chunks = build_chunks()
     write_index(chunks)
     # print how many passages each manual produced, as a quick check

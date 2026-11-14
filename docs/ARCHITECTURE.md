@@ -168,7 +168,7 @@ matter more than answer quality.
 
 Triggered when a manual is uploaded or revised:
 
-1. **Register** the document with metadata: product, family, SKU range, revision, languages and page ranges. The prototype's `manifest.json` becomes a table fed from the product information system.
+1. **Register** the document with metadata: product, family, SKU range, revision, languages and page ranges. In the prototype, the single manual's file and English page range are fixed in `config.py`; in production this becomes a table fed from the product information system.
 2. **Parse** with a layout-aware parser. Detect each page's language automatically instead of declaring ranges, and OCR the non-Latin pages.
 3. **Extract tables and figures** with a vision-capable model: troubleshooting tables become structured rows, and wiring and installation diagrams get text descriptions so they are retrievable. **A product expert approves the extracted tables** before they go live, because they drive diagnoses.
 4. **Chunk and index** with hybrid search (BM25 + multilingual embeddings), keeping page, section, product and revision metadata. Questions are then filtered by product before ranking, which matters once there are hundreds of similar pump manuals.

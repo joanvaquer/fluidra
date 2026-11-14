@@ -40,7 +40,6 @@ flowchart TD
 
     subgraph data["Data files"]
         PDF[("user_manual.pdf")]
-        MAN[("data/manuals/manifest.json")]
         CUR[("data/curated/*.json<br/>troubleshooting table")]
         IDX[("data/index/chunks.jsonl")]
         Q[("evaluation/questions.json")]
@@ -71,7 +70,7 @@ flowchart TD
     BASE --> INGM
     LLM --> OLL
 
-    INGM --> PDF & MAN & CUR
+    INGM --> PDF & CUR
     INGM -- writes --> IDX
     BASE -- reads --> IDX
     RUN --> Q
@@ -150,7 +149,7 @@ Which agents call the LLM depends on the mode:
 
 | File | What it does | Used by |
 |---|---|---|
-| [config.py](../src/pool_assistant/config.py) | Paths, the Ollama models, the six modes, limits | almost everything |
+| [config.py](../src/pool_assistant/config.py) | Paths (the manual, its English pages), the Ollama models, the six modes, limits | almost everything |
 | [schemas.py](../src/pool_assistant/schemas.py) | The data types passed between files (Pydantic) | almost everything |
 | [llm.py](../src/pool_assistant/llm.py) | Sends prompts to Ollama, checks the JSON replies, reports failures as `LLMError` | orchestrator (creates it), agents (call it), entry points (catch its errors) |
 | [orchestrator.py](../src/pool_assistant/orchestrator.py) | Builds the agents for a mode and runs them in order for each question | webapp, cli, evaluation/run |

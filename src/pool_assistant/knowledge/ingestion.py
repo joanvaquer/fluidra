@@ -1,15 +1,14 @@
-"""Turn the manuals listed in the manifest into chunks, one or more per page.
+"""Turn the manual into chunks, one or more per page.
 
-The manual has the same content in 9 languages, so only the page ranges declared in the
-manifest are indexed. Chunks never cross a page boundary, so every chunk can be cited
-with an exact page number.
+The manual has the same content in 9 languages, so only the English pages (FIRST_PAGE to
+LAST_PAGE in config.py) are indexed. Chunks never cross a page boundary, so every chunk can
+be cited with an exact page number.
 
 Steps: read each PDF page -> drop headers and page numbers -> split the page at section
 headings -> replace the troubleshooting table (which extracts as garbled text) with the
 hand-curated rows -> save everything as one JSON line per chunk.
 """
 
-import json
 import re
 from pathlib import Path
 
@@ -26,16 +25,8 @@ NOISE_RE = re.compile(r"^\s*(\d{1,3}|ENGLISH|Installation and general maintenanc
 MAX_CHUNK_CHARS = 1200  # a longer block is split, so each passage stays focused
 
 
-def load_manifest(path: Path = config.MANIFEST_PATH) -> list[dict]:
-    """The list of manuals: file, product, page ranges to index, troubleshooting table file."""
-    return json.loads(path.read_text(encoding="utf-8"))["manuals"]
-
-
-def load_troubleshooting(manual: dict) -> TroubleshootingMatrix | None:
-    """The manual's curated troubleshooting table, or None if it has none."""
-    if not manual.get("troubleshooting"):
-        return None
-    path = config.CURATED_DIR / manual["troubleshooting"]
+def load_troubleshooting(path: Path = config.TROUBLESHOOTING_PATH) -> TroubleshootingMatrix:
+    """The manual's hand-curated troubleshooting table."""
     return TroubleshootingMatrix.model_validate_json(path.read_text(encoding="utf-8"))
 
 
@@ -71,28 +62,27 @@ def split_page(lines: list[str], section: str, subheading: str):
     return blocks, section, subheading
 
 
-def chunk_manual(manual: dict) -> list[Chunk]:
-    """All the chunks of one manual, for the page ranges listed in the manifest."""
-    reader = PdfReader(config.PDF_DIR / manual["file"])
+def chunk_manual(doc_id: str, product: str) -> list[Chunk]:
+    """All the chunks of the manual's English pages."""
+    reader = PdfReader(config.PDF_PATH)
     chunks = []
-    for lang in manual["sections"]:  # e.g. the English pages, 5 to 14
-        section, subheading = "Safety Information", ""  # the first pages come before any heading
-        for page in range(lang["first_page"], lang["last_page"] + 1):
-            text = reader.pages[page - 1].extract_text() or ""  # pypdf counts pages from 0
-            # drop empty and noise lines, and use a plain apostrophe so searches match
-            lines = [ln.replace("’", "'") for ln in text.splitlines() if ln.strip() and not NOISE_RE.match(ln)]
-            # the section and subheading carry over to the next page
-            blocks, section, subheading = split_page(lines, section, subheading)
-            for i, (title, body) in enumerate(blocks):
-                chunks.append(Chunk(
-                    chunk_id=f"{manual['doc_id']}:{lang['language']}:p{page}:{i}",
-                    doc_id=manual["doc_id"],
-                    product=manual["product"],
-                    language=lang["language"],
-                    page=page,
-                    section=title,
-                    text=body,
-                ))
+    section, subheading = "Safety Information", ""  # the first pages come before any heading
+    for page in range(config.FIRST_PAGE, config.LAST_PAGE + 1):
+        text = reader.pages[page - 1].extract_text() or ""  # pypdf counts pages from 0
+        # drop empty and noise lines, and use a plain apostrophe so searches match
+        lines = [ln.replace("’", "'") for ln in text.splitlines() if ln.strip() and not NOISE_RE.match(ln)]
+        # the section and subheading carry over to the next page
+        blocks, section, subheading = split_page(lines, section, subheading)
+        for i, (title, body) in enumerate(blocks):
+            chunks.append(Chunk(
+                chunk_id=f"{doc_id}:en:p{page}:{i}",
+                doc_id=doc_id,
+                product=product,
+                language="en",
+                page=page,
+                section=title,
+                text=body,
+            ))
     return chunks
 
 
@@ -116,20 +106,12 @@ def matrix_to_chunks(matrix: TroubleshootingMatrix) -> list[Chunk]:
 
 
 def build_chunks() -> list[Chunk]:
-    """The chunks of every manual in the manifest."""
-    chunks = []
-    for manual in load_manifest():
-        manual_chunks = chunk_manual(manual)
-        matrix = load_troubleshooting(manual)
-        if matrix:
-            # replace the garbled table text with the curated rows
-            manual_chunks = [
-                c for c in manual_chunks
-                if not (c.page == matrix.source_page and c.section.startswith("7."))
-            ]
-            manual_chunks += matrix_to_chunks(matrix)
-        chunks += manual_chunks
-    return chunks
+    """All the chunks: the manual's pages, with the troubleshooting table's curated rows."""
+    matrix = load_troubleshooting()
+    chunks = chunk_manual(matrix.doc_id, matrix.product)
+    # replace the garbled table text with the curated rows
+    chunks = [c for c in chunks if not (c.page == matrix.source_page and c.section.startswith("7."))]
+    return chunks + matrix_to_chunks(matrix)
 
 
 def write_index(chunks: list[Chunk], path: Path = config.INDEX_PATH):

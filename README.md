@@ -132,7 +132,6 @@ The tests run offline mode, and the LLM and auto modes with a fake model, so the
 Fluidra_GenAI_Engineer_Technical_Assessment_v1/
   user_manual.pdf                the source manual
 data/
-  manuals/manifest.json          product metadata and which pages are in English
   curated/*_troubleshooting.json troubleshooting table transcribed from the manual (p. 13);
                                  the symptom keywords are only used in offline mode
 src/pool_assistant/

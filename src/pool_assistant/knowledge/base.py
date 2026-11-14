@@ -86,14 +86,6 @@ def load_knowledge_base(index_path: Path = config.INDEX_PATH) -> KnowledgeBase:
         chunks = ingestion.build_chunks()
         ingestion.write_index(chunks, index_path)
 
-    # 2. The troubleshooting table of every manual that has one.
-    manuals = ingestion.load_manifest()
-    matrices = {}
-    for manual in manuals:
-        matrix = ingestion.load_troubleshooting(manual)
-        if matrix:
-            matrices[matrix.product] = matrix
-
-    # 3. The product names, which triage offers to the LLM to choose from.
-    products = sorted({m["product"] for m in manuals})
-    return KnowledgeBase(chunks, matrices, products)
+    # 2. The troubleshooting table, which also gives the product name.
+    matrix = ingestion.load_troubleshooting()
+    return KnowledgeBase(chunks, {matrix.product: matrix}, [matrix.product])
