@@ -61,7 +61,10 @@ ELECTRICAL_TERMS = [
     "elektr", "kabel", "spannung",                                 # de
     "elétric", "tensão",                                           # pt
 ]
-DISCONNECT_WORDS = ["disconnect", "desconect", "desconnect", "débranch", "scollega", "trennen", "desligar"]
+DISCONNECT_WORDS = [
+    "disconnect", "desconect", "desconnect", "déconnect", "débranch", "disconnett", "disconness",
+    "scollega", "trennen", "abklemmen", "desligar",
+]
 SAFETY_WARNINGS = {
     "en": "**Safety:** before any electrical or mechanical work, disconnect the pump from the mains, "
           "block all start-up devices, check there is no voltage and wait for the impeller to stop "

@@ -1,0 +1,123 @@
+[
+  {
+    "id": "q01",
+    "question": "My pump makes a lot of noize and vibrats when its on",
+    "language": "en",
+    "variant": "typos",
+    "intent": ["troubleshooting"],
+    "causes": ["Pump incorrectly secured"],
+    "pages": [13],
+    "safety": false,
+    "facts": ["secur", "fix", "anchor"],
+    "note": "Noise: the only cause in the table is the pump not being secured."
+  },
+  {
+    "id": "q02",
+    "question": "La bomba no ceba y sale muy poca agua, ¿qué puede ser?",
+    "language": "es",
+    "variant": "clean",
+    "intent": ["troubleshooting"],
+    "causes": ["Air entering the suction pipe", "Motor turning in wrong direction", "Wrong voltage"],
+    "pages": [13],
+    "safety": false,
+    "facts": ["aspiraci", "aire", "succi"],
+    "note": "Not primed + small flow: the three rows that share both symptoms."
+  },
+  {
+    "id": "q03",
+    "question": "El motor s'ha aturat i crec que salta la proteccio termica",
+    "language": "ca",
+    "variant": "missing accents",
+    "intent": ["troubleshooting"],
+    "causes": ["The thermal protection trips", "Incorrect junction box connections", "Increased temperature in the terminal box due to electric arc"],
+    "pages": [13],
+    "safety": true,
+    "facts": ["cable", "connex", "borne", "caixa"],
+    "note": "Motor stopped: junction box causes. Electrical work, so the disconnect warning is required."
+  },
+  {
+    "id": "q04",
+    "question": "Ma pompe ne démarre pas du tout, que dois-je vérifier ?",
+    "language": "fr",
+    "variant": "clean",
+    "intent": ["troubleshooting"],
+    "causes": ["Wrong voltage"],
+    "pages": [13],
+    "safety": true,
+    "facts": ["tension", "plaque"],
+    "note": "Will not start: wrong voltage is the only row. Checking voltage is electrical work."
+  },
+  {
+    "id": "q05",
+    "question": "il motore fa un ronzio ma non parte, cosa faccio",
+    "language": "it",
+    "variant": "no punctuation",
+    "intent": ["troubleshooting"],
+    "causes": ["Motor blocked"],
+    "pages": [13],
+    "safety": true,
+    "facts": ["bloccat", "assistenza", "smont", "rimuov"],
+    "note": "Hums but won't start: motor blocked, remove the motor and call the technical service."
+  },
+  {
+    "id": "q06",
+    "question": "Wie oft muss man die Gleitringdichtung und die Lager wechseln?",
+    "language": "de",
+    "variant": "clean",
+    "intent": ["maintenance"],
+    "causes": [],
+    "pages": [12],
+    "safety": false,
+    "facts": ["1 jahr", "ein jahr", "einem jahr", "jährlich", "jedes jahr", "12 monat"],
+    "note": "Mechanical seal and bearings: every year (replacement table, p. 12)."
+  },
+  {
+    "id": "q07",
+    "question": "what shuold i do with the pump befor the winter if the pool is closed??",
+    "language": "en",
+    "variant": "typos",
+    "intent": ["maintenance"],
+    "causes": [],
+    "pages": [11],
+    "safety": false,
+    "facts": ["empty", "drain", "purge"],
+    "note": "Empty the pump through the purge cap if it stays stopped, especially where it freezes (p. 11)."
+  },
+  {
+    "id": "q08",
+    "question": "Como faço o arranque da bomba pela primeira vez?",
+    "language": "pt",
+    "variant": "clean",
+    "intent": ["start_up", "installation"],
+    "causes": [],
+    "pages": [11],
+    "safety": false,
+    "facts": ["água", "agua", "encher", "enche", "pré-filtro", "pre-filtro"],
+    "note": "First start-up: fill the pump with water through the pre-filter before starting (p. 11)."
+  },
+  {
+    "id": "q09",
+    "question": "¿Me recomiendas un buen restaurante en Barcelona?",
+    "language": "es",
+    "variant": "out of scope",
+    "intent": ["out_of_scope"],
+    "causes": [],
+    "pages": [],
+    "safety": false,
+    "facts": [],
+    "note": "Not about pool equipment: must be refused."
+  },
+  {
+    "id": "q10",
+    "question": "How many years of warranty does the ASTRAL pump have?",
+    "language": "en",
+    "variant": "not in manual",
+    "intent": ["general", "safety", "maintenance", "installation", "out_of_scope"],
+    "causes": [],
+    "pages": [],
+    "safety": false,
+    "facts": [],
+    "trap": "no_invented_years",
+    "note": "The manual never gives a warranty period: the answer must not invent a number of years. Refusing is also acceptable."
+  }
+]
