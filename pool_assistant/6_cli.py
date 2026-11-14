@@ -38,7 +38,8 @@ def main():
     if args.trace:
         print(f"\nMode: {response.mode}" + (f" ({response.model})" if response.model else ""))
         for s in response.trace:
-            print(f"  {s.agent:<14}{s.duration_ms:>7} ms  {s.summary}")
+            seconds = f"{s.duration_ms / 1000:.1f} s" if s.duration_ms >= 100 else "<0.1 s"  # e.g. "20.2 s"
+            print(f"  {s.agent:<14}{seconds:>8}  {s.summary}")
 
 
 # lets the file also be run as: python -m pool_assistant.cli "..." --mode offline

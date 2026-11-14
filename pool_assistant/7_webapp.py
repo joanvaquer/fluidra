@@ -74,7 +74,11 @@ def format_response(response: AssistantResponse, trace: bool) -> str:
         parts.append("**Sources:** " + ", ".join(f"p. {p}" for p in sorted({s.page for s in response.sources})))
     if trace:
         # a table with one row per agent step: agent | time | what it did
-        rows = "\n".join(f"| {s.agent} | {s.duration_ms:,} ms | {s.summary} |" for s in response.trace)
+        # e.g. "20.2 s"; the offline steps take a few milliseconds, shown as "<0.1 s"
+        rows = "\n".join(
+            f"| {s.agent} | {f'{s.duration_ms / 1000:.1f} s' if s.duration_ms >= 100 else '<0.1 s'} | {s.summary} |"
+            for s in response.trace
+        )
         model = f" ({response.model})" if response.model else ""
         parts.append(f"*Mode: {response.mode}{model}*\n\n| Agent | Time | What it did |\n|---|---|---|\n{rows}")
     return "\n\n".join(parts)
