@@ -105,8 +105,8 @@ flowchart TD
 
 - **A larger model gives better results.** The four models are swapped with `--mode`; a new one is one line in `MODELS` in 1_config.py:
   - A bigger free local model (e.g. `qwen2.5:7b` or `llama3.1:8b` on Ollama) follows instructions, translates and stays on the evidence much better. It needs a GPU to be fast.
-  - A hosted model (e.g. Claude, through its API or the cloud provider Fluidra already uses) gives the best quality and speed, paid per token (§ 3.8).
-  - The choice should be made with the evaluation set (§ 3.5), with `offline` mode as the baseline and `auto` as the cheap middle option.
+  - A hosted model (e.g. Claude, through its API or the cloud provider Fluidra already uses) gives the best quality and speed, paid per token (§ 3.5).
+  - The choice should be made with the evaluation set (§ 3.3), with `offline` mode as the baseline and `auto` as the cheap middle option.
 - **A different model per agent**, e.g. a small fast one for triage and a stronger one for writing and verifying. `auto` is a first step: the LLM only where it is needed.
 - **Fewer calls**: triage and diagnosis could share one call, and the verifier could check only answers that involve electrical work or many claims.
 - **Stream the writer's answer** so the technician sees text immediately instead of waiting for the whole reply.
@@ -115,122 +115,63 @@ flowchart TD
 
 ## 3. Deploying to production
 
-### 3.1 Target architecture
+The prototype runs on one laptop, for one manual. In production the five agents and the
+orchestrator stay the same; what changes is around them: a faster model, many manuals,
+logins, and checks before every release.
+
+### 3.1 The big picture
 
 ```mermaid
 flowchart LR
-    subgraph Clients
-      APP[Technician app / web chat]
-    end
-    subgraph Edge
-      GW[API gateway<br/>SSO auth, rate limits, WAF]
-    end
-    subgraph Serving["Serving (containers, autoscaled)"]
-      API[FastAPI + orchestrator<br/>stateless]
-    end
-    subgraph Data
-      VS[(Hybrid search index<br/>BM25 + vectors, product metadata)]
-      DB[(Postgres: conversations,<br/>feedback, tables)]
-      BLOB[(Object storage:<br/>manual PDFs, figures)]
-    end
-    subgraph Ingestion["Ingestion pipeline (event-driven)"]
-      ING[Parse → OCR → table/figure extraction<br/>→ chunk → embed → expert review]
-    end
-    LLM[LLM: hosted API<br/>or self-hosted open model]
-    OBS[Tracing, metrics, logs<br/>OpenTelemetry]
-
-    APP --> GW --> API
-    API --> VS
-    API --> DB
-    API --> LLM
-    API -.-> OBS
-    BLOB -- new manual --> ING --> VS
-    ING --> DB
+    APP[Technician<br/>web or mobile app] --> SRV["Web app + orchestrator<br/>(containers in the cloud)"]
+    SRV --> IDX[(Search index<br/>all manuals)]
+    SRV --> LLM[LLM<br/>hosted or on a GPU]
+    SRV --> DB[(Database<br/>conversations, feedback)]
+    PDF[New or revised manual] --> ING[Ingestion<br/>PDF to passages] --> IDX
 ```
 
-The design is cloud-agnostic. The components map to managed services on any provider:
+Each box is a standard managed service on any cloud provider. The simplest choice is the cloud
+Fluidra already uses, so billing, accounts and EU data residency stay under existing contracts.
 
-| Component | Azure | AWS | GCP |
-|---|---|---|---|
-| Containers | Container Apps / AKS | ECS Fargate / EKS | Cloud Run / GKE |
-| Search index | Azure AI Search | OpenSearch | Vertex AI Search / AlloyDB pgvector |
-| Relational store | Azure Database for PostgreSQL | RDS / Aurora | Cloud SQL |
-| Object storage + events | Blob Storage + Event Grid | S3 + EventBridge | GCS + Eventarc |
-| Hosted LLM | Microsoft Foundry | Amazon Bedrock | Vertex AI |
-| Secrets | Key Vault | Secrets Manager | Secret Manager |
+### 3.2 What changes from the prototype
 
-The best choice is whatever cloud Fluidra already runs on, which keeps billing, IAM and data
-residency (EU regions) within existing contracts. A self-hosted open model (Llama or Qwen,
-served with Ollama or vLLM on GPU nodes) is the alternative if cost per call or data control
-matter more than answer quality.
+| | Prototype | Production |
+|---|---|---|
+| **Model** | Small local models (3–4B) on a CPU: 1–4 minutes per answer | A hosted model (e.g. Claude) or a larger open model on a GPU: a few seconds |
+| **Manuals** | One PDF; the English pages are set in `1_config.py`; the troubleshooting table is typed by hand | An ingestion step for every new or revised manual: read the PDF, detect languages, extract tables and diagrams with a vision model. **A product expert approves the tables** before they go live |
+| **Search** | BM25 word search over 30 passages | Word search plus meaning-based search (embeddings), filtered by product first, since there will be hundreds of similar manuals |
+| **Memory** | None: each question stands alone | The conversation is saved per session, so "it still doesn't work" makes sense |
+| **Access** | Anyone who can open the app | Company login, and limits on requests per user |
+| **Speed tricks** | None | Show the answer as it is written (streaming), and reuse the fixed parts of prompts (prompt caching) |
+| **If the LLM is down** | The error is shown | The same, or offer `offline` mode with the answer marked as such |
+| **Monitoring** | A per-agent trace in each reply | The same trace stored for every question, with dashboards and alerts on errors, time and cost |
 
-### 3.2 Ingestion pipeline (the biggest gap between prototype and production)
+### 3.3 Quality checks before each release
 
-Triggered when a manual is uploaded or revised:
+- **A test set** of about 150–300 real technician questions, written with Fluidra's technical
+  service team, with the expected pages and facts. It is the `evaluation/` folder, made bigger.
+- **Every change** to a prompt, model or search setting reruns it, and a change that makes the
+  results worse is not released. The same test set decides which model to use.
+- **Feedback in the app** (thumbs up/down, "this was wrong"). Confirmed mistakes are added to
+  the test set.
 
-1. **Register** the document with metadata: product, family, SKU range, revision, languages and page ranges. In the prototype, the single manual's file and English page range are fixed in `1_config.py`; in production this becomes a table fed from the product information system.
-2. **Parse** with a layout-aware parser. Detect each page's language automatically instead of declaring ranges, and OCR the non-Latin pages.
-3. **Extract tables and figures** with a vision-capable model: troubleshooting tables become structured rows, and wiring and installation diagrams get text descriptions so they are retrievable. **A product expert approves the extracted tables** before they go live, because they drive diagnoses.
-4. **Chunk and index** with hybrid search (BM25 + multilingual embeddings), keeping page, section, product and revision metadata. Questions are then filtered by product before ranking, which matters once there are hundreds of similar pump manuals.
-5. **Version** the index. When a new manual revision is published, swap aliases atomically and keep the old revision for answers already given.
+### 3.4 Security and privacy
 
-### 3.3 Serving
+- Personal data (customer names, addresses) is removed before anything is logged, and data stays
+  in the EU (GDPR). With a hosted model, check the provider's data-retention terms.
+- The agents can't change anything (they only read and write text), and the LLM's replies are
+  checked in code, which limits what a malicious question can do.
+- Answers keep their page citations and safety warning, unverified answers are marked, and
+  electrical work is always left to qualified personnel, as the manual requires.
 
-- The API is **stateless** and horizontally autoscaled. Conversation state lives in Postgres, keyed by session.
-- Use async calls and run independent steps concurrently where the flow allows.
-- **Stream** the writer's output to the client to reduce perceived latency. Verification runs on the full draft, so either show "verifying…" or stream and retract on failure.
-- **Prompt caching** for the stable system prompts and the troubleshooting tables, plus a response cache for frequent identical questions (scoped per manual revision).
-- Timeouts, retries and backoff, plus circuit breakers.
-- **When the LLM is unavailable**: the prototype shows the error (in the web app chat or the CLI) rather than silently switching mode. In production, the app could offer the technician the `offline` mode explicitly, with the answer marked as such.
+### 3.5 Cost
 
-### 3.4 Conversation and product context
+- **Hosted model**: 2–5 calls per question, a few thousand words each: cents per question on a
+  top model, much less on a smaller one.
+- **Own model on a GPU**: no cost per call, but the GPU is paid for all the time.
 
-- Multi-turn sessions: triage receives the previous turns so it can resolve "it still doesn't work".
-- Product disambiguation: if the product is unknown, ask the technician (or let them scan the rating-plate QR or serial) instead of searching every manual.
+### 3.6 Rollout
 
-### 3.5 Quality: evaluation as a release gate
-
-- **Golden set**: about 150–300 real technician questions with expected pages and key facts, built with Fluidra's technical service team and covering every intent, the main languages and out-of-scope cases.
-- **Metrics**:
-  - Retrieval: recall@k of the expected pages.
-  - Faithfulness: an LLM judge checks that every claim is supported.
-  - Answer correctness against the key facts.
-  - Safety-warning presence.
-  - Refusal correctness.
-  - Latency and cost per answer.
-- **CI gate**: every change to prompts, models, chunking or retrieval reruns the eval. Merges are blocked on regressions. This is also how the model is chosen (local vs. hosted, small vs. large) per agent.
-- **Online**: thumbs up/down plus a "this was wrong" reason in the app, sampled human review of flagged and unverified answers, and a weekly review with the technical service team. Confirmed failures go into the golden set.
-
-### 3.6 Observability
-
-- An OpenTelemetry trace per question, with one span per agent recording latency, model, tokens, mode and verifier verdicts. The prototype already returns a per-agent trace in each response.
-- Dashboards: p50/p95 latency, cost per answer, verification-failure rate, error rate per mode, out-of-scope rate, "not in manual" rate. A rising "not in manual" rate shows which documentation is missing.
-- Alerts on error rate, latency, cost spikes and a drop in verification pass rate.
-
-### 3.7 Security and compliance
-
-- **Authentication** via company SSO / OIDC for technicians and partners, with role-based access for internal documentation.
-- **Gateway**: rate limiting per user, input size limits, WAF.
-- **Prompt injection**: outputs are schema-constrained or post-checked in code, and the agents have no tools with side effects. If ingested documents ever come from outside Fluidra, they must be sanitised at ingestion.
-- **Privacy**: detect and redact personal data (customer names, addresses in free text) before logging. Set log retention and keep data in the EU region to meet GDPR. Check the LLM provider's data-retention terms, or use a self-hosted model.
-- **Liability**: answers carry sources and the safety warnings; unverified answers are marked; electrical work is always deferred to qualified personnel as the manual requires.
-
-### 3.8 Cost and latency (rough order of magnitude)
-
-- **Hosted model**: about 2–3 calls per question with a few thousand tokens each, which is cents per question on a top-tier model and much less on a smaller one.
-- **Self-hosted model**: no cost per call, but GPU capacity sized for peak traffic. On GPU, a 7–8B model answers in a few seconds instead of the 10–60 s seen on the prototype's laptop CPU.
-- **Levers**, each validated against the eval set:
-  - Prompt caching.
-  - A smaller model for triage.
-  - A response cache for frequent questions.
-  - Streaming, with "searching… diagnosing… writing…" progress in the app.
-
-### 3.9 Delivery
-
-- **Infrastructure as code** (Terraform or Bicep). Dev, staging and production environments, each with its own index and keys.
-- **CI**: lint, unit tests (they use a fake LLM and need no model), then the eval gate, a container build and an image scan.
-- **CD**: deploy to staging, run a smoke test against the golden subset, then a canary to production with automatic rollback on SLO breach.
-- **Rollout**:
-  1. Internal pilot with the technical service team (shadow mode: they compare answers with their own).
-  2. A small group of field technicians on 2–3 product families.
-  3. Expand product coverage as the ingestion pipeline reaches each family.
+1. **Internal pilot** with the technical service team, who compare the answers with their own.
+2. **A small group of field technicians**, on 2–3 product families.
+3. **More products** as their manuals go through ingestion.
