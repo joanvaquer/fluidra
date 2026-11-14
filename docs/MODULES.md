@@ -8,7 +8,7 @@ The files are numbered in the order they come into use, so a file only uses file
 number: `1_config` → `2_schemas` → `3_knowledge` → `4_llm` → `agents/` → `5_orchestrator` →
 `6_cli`, `7_webapp`. Inside `agents/`, `0_common` comes before the five agents. In the code they
 are imported without the number (`from pool_assistant import config`); the rule that makes this
-work is in [`__init__.py`](../src/pool_assistant/__init__.py).
+work is in [`__init__.py`](../pool_assistant/__init__.py).
 
 ## 1. Which file uses which
 
@@ -143,25 +143,25 @@ Which agents call the LLM depends on the mode:
 
 ## 3. What every file is for
 
-**The app** (`src/pool_assistant/`)
+**The app** (`pool_assistant/`)
 
 | File | What it does | Used by |
 |---|---|---|
-| [\_\_init\_\_.py](../src/pool_assistant/__init__.py) | Lets every numbered file be imported by its name without the number | Python, on every import |
-| [1_config.py](../src/pool_assistant/1_config.py) | Paths (the manual, its English pages), the Ollama models, the six modes, limits | almost everything |
-| [2_schemas.py](../src/pool_assistant/2_schemas.py) | The data types passed between files (Pydantic) | almost everything |
-| [3_knowledge.py](../src/pool_assistant/3_knowledge.py) | Splits the PDF into page-sized passages and saves the index; loads it with the troubleshooting table; BM25 word search | orchestrator, webapp, agents. Run on its own (`python -m pool_assistant.knowledge`), it rebuilds the index |
-| [4_llm.py](../src/pool_assistant/4_llm.py) | Sends prompts to Ollama, checks the JSON replies, reports failures as `LLMError` | orchestrator (creates it), agents (call it), entry points (catch its errors) |
-| [5_orchestrator.py](../src/pool_assistant/5_orchestrator.py) | Builds the agents for a mode and runs them in order for each question | webapp, cli, evaluation/run |
-| [agents/\_\_init\_\_.py](../src/pool_assistant/agents/__init__.py) | Exports the five agent classes | orchestrator |
-| [agents/0_common.py](../src/pool_assistant/agents/0_common.py) | Shared rules: citations, language, symptom keywords, safety words and text | triage, writer, verifier, evaluation/report |
-| [agents/1_triage.py](../src/pool_assistant/agents/1_triage.py) | Scope, intent, language, product, symptoms | orchestrator |
-| [agents/2_retriever.py](../src/pool_assistant/agents/2_retriever.py) | Finds the manual passages to answer from | orchestrator |
-| [agents/3_diagnostician.py](../src/pool_assistant/agents/3_diagnostician.py) | Ranks causes from the troubleshooting table | orchestrator |
-| [agents/4_writer.py](../src/pool_assistant/agents/4_writer.py) | Writes the answer with citations and the safety warning | orchestrator |
-| [agents/5_verifier.py](../src/pool_assistant/agents/5_verifier.py) | Checks citations and the safety warning (and grounding, in LLM modes) | orchestrator |
-| [6_cli.py](../src/pool_assistant/6_cli.py) | `pool-assistant "question" --mode ...` | you |
-| [7_webapp.py](../src/pool_assistant/7_webapp.py) | `pool-assistant-web`: the Shiny chat | you |
+| [\_\_init\_\_.py](../pool_assistant/__init__.py) | Lets every numbered file be imported by its name without the number | Python, on every import |
+| [1_config.py](../pool_assistant/1_config.py) | Paths (the manual, its English pages), the Ollama models, the six modes, limits | almost everything |
+| [2_schemas.py](../pool_assistant/2_schemas.py) | The data types passed between files (Pydantic) | almost everything |
+| [3_knowledge.py](../pool_assistant/3_knowledge.py) | Splits the PDF into page-sized passages and saves the index; loads it with the troubleshooting table; BM25 word search | orchestrator, webapp, agents. Run on its own (`python -m pool_assistant.knowledge`), it rebuilds the index |
+| [4_llm.py](../pool_assistant/4_llm.py) | Sends prompts to Ollama, checks the JSON replies, reports failures as `LLMError` | orchestrator (creates it), agents (call it), entry points (catch its errors) |
+| [5_orchestrator.py](../pool_assistant/5_orchestrator.py) | Builds the agents for a mode and runs them in order for each question | webapp, cli, evaluation/run |
+| [agents/\_\_init\_\_.py](../pool_assistant/agents/__init__.py) | Exports the five agent classes | orchestrator |
+| [agents/0_common.py](../pool_assistant/agents/0_common.py) | Shared rules: citations, language, symptom keywords, safety words and text | triage, writer, verifier, evaluation/report |
+| [agents/1_triage.py](../pool_assistant/agents/1_triage.py) | Scope, intent, language, product, symptoms | orchestrator |
+| [agents/2_retriever.py](../pool_assistant/agents/2_retriever.py) | Finds the manual passages to answer from | orchestrator |
+| [agents/3_diagnostician.py](../pool_assistant/agents/3_diagnostician.py) | Ranks causes from the troubleshooting table | orchestrator |
+| [agents/4_writer.py](../pool_assistant/agents/4_writer.py) | Writes the answer with citations and the safety warning | orchestrator |
+| [agents/5_verifier.py](../pool_assistant/agents/5_verifier.py) | Checks citations and the safety warning (and grounding, in LLM modes) | orchestrator |
+| [6_cli.py](../pool_assistant/6_cli.py) | `pool-assistant "question" --mode ...` | you |
+| [7_webapp.py](../pool_assistant/7_webapp.py) | `pool-assistant-web`: the Shiny chat | you |
 
 **Evaluation**
 

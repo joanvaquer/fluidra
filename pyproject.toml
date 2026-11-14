@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools>=69"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "pool-assistant"
@@ -22,9 +22,10 @@ dev = ["pytest>=8"]
 pool-assistant = "pool_assistant.cli:main"
 pool-assistant-web = "pool_assistant.webapp:main"
 
-[tool.setuptools.packages.find]
-where = ["src"]
+# the package is the pool_assistant/ folder (hatchling installs it without an .egg-info folder)
+[tool.hatch.build.targets.wheel]
+packages = ["pool_assistant"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src"]
+pythonpath = ["."]

@@ -84,7 +84,7 @@ python -m pool_assistant.knowledge
 | `offline` | none | — | No Ollama needed. Answers in milliseconds, English templates only. |
 
 To use a different size (e.g. `llama3.1:8b`), change its tag in `MODELS` in
-[1_config.py](src/pool_assistant/1_config.py). Reasoning models such as `deepseek-r1` don't work
+[1_config.py](pool_assistant/1_config.py). Reasoning models such as `deepseek-r1` don't work
 well here: they reason before every reply, which takes minutes on CPU and uses up the token
 limit before the JSON is written.
 
@@ -134,7 +134,7 @@ Fluidra_GenAI_Engineer_Technical_Assessment_v1/
 data/
   curated/*_troubleshooting.json troubleshooting table transcribed from the manual (p. 13);
                                  the symptom keywords are only used in offline mode
-src/pool_assistant/              numbered in the order they come into use; each file only
+pool_assistant/                  numbered in the order they come into use; each file only
                                  uses files with a lower number
   1_config.py                    paths, models, modes and limits
   2_schemas.py                   data passed between agents and returned to the app
