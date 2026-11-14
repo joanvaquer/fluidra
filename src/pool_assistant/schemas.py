@@ -115,14 +115,7 @@ class Verdict(BaseModel):
     issues: list[str]
 
 
-# --- API ---
-
-Mode = Literal[config.MODES]
-
-
-class AskRequest(BaseModel):
-    question: str = Field(min_length=3, max_length=2000)
-    mode: Mode  # qwen, llama, gemma, deepseek (LLM), auto (LLM triage and writer) or offline (no LLM)
+# --- response returned to the CLI and the web app ---
 
 
 class Source(BaseModel):

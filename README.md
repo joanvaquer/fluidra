@@ -4,7 +4,7 @@ A multi-agent GenAI application that answers pool technicians' technical questio
 Fluidra products, grounded in the official product manuals. The knowledge source is the
 **ASTRAL Pool** pump manual provided with the assessment.
 
-- **User-triggered**: the technician sends a question through a REST API or a CLI.
+- **User-triggered**: the technician asks a question in a web app (Shiny) or a CLI.
 - **Multi-agent**: five agents (1 Triage, 2 Retriever, 3 Diagnostician, 4 Writer, 5 Verifier),
   each with one responsibility, run in a fixed order by an orchestrator.
 - **Six modes, always chosen by the user**:
@@ -90,6 +90,16 @@ limit before the JSON is written.
 
 ## Usage
 
+**Web app**
+
+```bash
+pool-assistant-web
+```
+
+Opens a chat at http://127.0.0.1:8000. Pick the mode in the sidebar (any of the six; there is
+no default), type the question, and tick *Show what each agent did* to see the trace. If the
+LLM is not available or a call fails, the chat shows the error.
+
 **CLI** (`--mode` is required)
 
 ```bash
@@ -107,23 +117,6 @@ passages for the first time.
 
 If Ollama isn't running or the model isn't downloaded, the CLI stops with an error (and the
 `ollama pull` command to run).
-
-**REST API**
-
-```bash
-uvicorn pool_assistant.api:app --reload
-```
-
-Open http://localhost:8000 for the interactive docs, or call it directly. `mode` is required:
-
-```bash
-curl -X POST localhost:8000/ask -H "Content-Type: application/json" \
-     -d '{"question": "The motor has stopped and the thermal protection trips", "mode": "gemma"}'
-```
-
-The response includes `answer`, `intent`, `language`, `product`, `verified`, `sources`,
-`diagnosis`, `verification_issues`, `trace`, `mode` and `model`. If the LLM is not available
-or a call fails, the API answers 503 with the reason.
 
 ## Tests
 
@@ -149,8 +142,8 @@ src/pool_assistant/
   knowledge/                     PDF chunking, and BM25 search for offline and auto modes
   llm.py                         Ollama client
   orchestrator.py                runs the agents for a question
-  schemas.py                     data passed between agents and returned by the API
-  api.py, cli.py                 entry points
+  schemas.py                     data passed between agents and returned to the app
+  webapp.py, cli.py              entry points: Shiny chat and command line
 scripts/ingest.py                rebuilds the index
 docs/ARCHITECTURE.md             design, limitations and deployment
 ```

@@ -181,7 +181,7 @@ Triggered when a manual is uploaded or revised:
 - **Stream** the writer's output to the client to reduce perceived latency. Verification runs on the full draft, so either show "verifying…" or stream and retract on failure.
 - **Prompt caching** for the stable system prompts and the troubleshooting tables, plus a response cache for frequent identical questions (scoped per manual revision).
 - Timeouts, retries and backoff, plus circuit breakers.
-- **When the LLM is unavailable**: the prototype returns an error (503) rather than silently switching mode. In production, the app could offer the technician the `offline` mode explicitly, with the answer marked as such.
+- **When the LLM is unavailable**: the prototype shows the error (in the web app chat or the CLI) rather than silently switching mode. In production, the app could offer the technician the `offline` mode explicitly, with the answer marked as such.
 
 ### 3.4 Conversation and product context
 
