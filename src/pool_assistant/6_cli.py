@@ -41,6 +41,6 @@ def main():
             print(f"  {s.agent:<14}{s.duration_ms:>7} ms  {s.summary}")
 
 
-# lets the file also be run directly: python src/pool_assistant/cli.py "..." --mode offline
+# lets the file also be run as: python -m pool_assistant.cli "..." --mode offline
 if __name__ == "__main__":
     main()

@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 
 # --- file paths ---
-# ROOT is the project folder: this file is src/pool_assistant/config.py, so two levels up.
+# ROOT is the project folder: this file is src/pool_assistant/1_config.py, so two levels up.
 ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = ROOT / "data"
 PDF_PATH = ROOT / "Fluidra_GenAI_Engineer_Technical_Assessment_v1" / "user_manual.pdf"  # the manual

@@ -8,7 +8,7 @@ If the verifier rejects the answer, it is called again with the verifier's issue
 from pool_assistant.agents.common import (
     LANGUAGE_NAMES, NOT_FOUND, SAFETY_WARNINGS, has_safety_warning, needs_safety_warning, safety_warning,
 )
-from pool_assistant.knowledge.base import tokenize
+from pool_assistant.knowledge import tokenize
 from pool_assistant.schemas import Diagnosis, Evidence, TriageResult
 
 # Instructions for the LLM. {language} is the question's language, {safety} the standard

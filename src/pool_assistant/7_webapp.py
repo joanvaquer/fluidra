@@ -1,5 +1,5 @@
 """Web app: a chat with the assistant. Run with: pool-assistant-web
-(or: shiny run src/pool_assistant/webapp.py) and open http://127.0.0.1:8000.
+(or: python -m pool_assistant.webapp) and open http://127.0.0.1:8000.
 
 The mode is picked in the sidebar for every question; as in the CLI, there is no default.
 

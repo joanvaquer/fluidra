@@ -18,7 +18,7 @@ between them:
 - **`qwen`, `llama`, `gemma`, `deepseek`**: free local LLMs run with **Ollama** (no paid
   services, as the brief requires). **Every agent makes its decisions with that model.** If a
   call fails, the question fails with an error, so the user knows which mode produced an answer.
-- **`auto`**: the LLM (`qwen`, `AUTO_MODEL` in config.py) only for **triage and writer**, the
+- **`auto`**: the LLM (`qwen`, `AUTO_MODEL` in 1_config.py) only for **triage and writer**, the
   two steps that need language understanding. **Retriever, diagnostician and verifier** use
   the offline implementations (§ 2.1.1).
 - **`offline`**: every agent uses word matching and fixed rules, with no LLM. Instant and
@@ -70,7 +70,7 @@ flowchart TD
 - **The writer needs the LLM** to answer in the technician's language, in natural sentences.
 - **The verifier's citation and safety checks are rules**, so a small model can't approve an
   answer with a made-up page or a missing disconnect-power warning. The safety words in
-  `common.py` cover the languages the writer answers in.
+  `agents/0_common.py` cover the languages the writer answers in.
 - **Trade-off:** `auto` does not check that each statement is supported by the evidence (the
   LLM verifier's `supported` check), only that the cited pages are real. An answer that says
   "not in the manual" without citing a page is rejected and flagged as unverified.
@@ -103,7 +103,7 @@ flowchart TD
 
 ### 2.4 Improvements
 
-- **A larger model gives better results.** The four models are swapped with `--mode`; a new one is one line in `MODELS` in config.py:
+- **A larger model gives better results.** The four models are swapped with `--mode`; a new one is one line in `MODELS` in 1_config.py:
   - A bigger free local model (e.g. `qwen2.5:7b` or `llama3.1:8b` on Ollama) follows instructions, translates and stays on the evidence much better. It needs a GPU to be fast.
   - A hosted model (e.g. Claude, through its API or the cloud provider Fluidra already uses) gives the best quality and speed, paid per token (§ 3.8).
   - The choice should be made with the evaluation set (§ 3.5), with `offline` mode as the baseline and `auto` as the cheap middle option.
@@ -168,7 +168,7 @@ matter more than answer quality.
 
 Triggered when a manual is uploaded or revised:
 
-1. **Register** the document with metadata: product, family, SKU range, revision, languages and page ranges. In the prototype, the single manual's file and English page range are fixed in `config.py`; in production this becomes a table fed from the product information system.
+1. **Register** the document with metadata: product, family, SKU range, revision, languages and page ranges. In the prototype, the single manual's file and English page range are fixed in `1_config.py`; in production this becomes a table fed from the product information system.
 2. **Parse** with a layout-aware parser. Detect each page's language automatically instead of declaring ranges, and OCR the non-Latin pages.
 3. **Extract tables and figures** with a vision-capable model: troubleshooting tables become structured rows, and wiring and installation diagrams get text descriptions so they are retrievable. **A product expert approves the extracted tables** before they go live, because they drive diagnoses.
 4. **Chunk and index** with hybrid search (BM25 + multilingual embeddings), keeping page, section, product and revision metadata. Questions are then filtered by product before ranking, which matters once there are hundreds of similar pump manuals.

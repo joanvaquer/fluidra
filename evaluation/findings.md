@@ -35,7 +35,7 @@ checks never let an answer through without the safety warning. `gemma` gives the
 
 ### Bug found and fixed during the evaluation
 
-The rule that checks the safety warning (`DISCONNECT_WORDS` in `agents/common.py`) did not
+The rule that checks the safety warning (`DISCONNECT_WORDS` in `agents/0_common.py`) did not
 recognise French *déconnectez* or Italian *disconnettere*. So `auto` rejected correct French and
 Italian answers, rewrote them and flagged them as unverified. After the fix, those two `auto`
 answers were re-run: both were verified on the first draft, in about 90 s instead of about 160 s.

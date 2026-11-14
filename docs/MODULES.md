@@ -4,6 +4,12 @@ This page maps the code: which file uses which, what happens to one question, an
 file is for. The arrows come from the real `import` statements in the code. For the design
 reasons behind them, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
+The files are numbered in the order they come into use, so a file only uses files with a lower
+number: `1_config` → `2_schemas` → `3_knowledge` → `4_llm` → `agents/` → `5_orchestrator` →
+`6_cli`, `7_webapp`. Inside `agents/`, `0_common` comes before the five agents. In the code they
+are imported without the number (`from pool_assistant import config`); the rule that makes this
+work is in [`__init__.py`](../src/pool_assistant/__init__.py).
+
 ## 1. Which file uses which
 
 An arrow `A → B` means *A uses B*. The layers read top to bottom: the entry points start
@@ -12,31 +18,27 @@ everything, the orchestrator runs the agents, and the agents use the knowledge b
 ```mermaid
 flowchart TD
     subgraph entry["Entry points: how a person runs it"]
-        WEB["webapp.py<br/><i>Shiny chat</i>"]
-        CLI["cli.py<br/><i>command line</i>"]
+        WEB["7_webapp.py<br/><i>Shiny chat</i>"]
+        CLI["6_cli.py<br/><i>command line</i>"]
         RUN["evaluation/run.py<br/><i>asks the test questions</i>"]
         REP["evaluation/report.py<br/><i>scores the answers</i>"]
-        ING["scripts/ingest.py<br/><i>rebuilds the index</i>"]
     end
 
-    ORCH["orchestrator.py<br/><i>runs the 5 agents in order</i>"]
+    ORCH["5_orchestrator.py<br/><i>runs the 5 agents in order</i>"]
 
     subgraph agents["agents/"]
-        INIT["__init__.py<br/><i>loads the numbered files</i>"]
+        INIT["__init__.py<br/><i>exports the 5 agents</i>"]
         A1["1_triage.py"]
         A2["2_retriever.py"]
         A3["3_diagnostician.py"]
         A4["4_writer.py"]
         A5["5_verifier.py"]
-        COM["common.py<br/><i>citations, language,<br/>safety rules</i>"]
+        COM["0_common.py<br/><i>citations, language,<br/>safety rules</i>"]
     end
 
-    subgraph knowledge["knowledge/"]
-        BASE["base.py<br/><i>BM25 search, tables</i>"]
-        INGM["ingestion.py<br/><i>PDF → passages</i>"]
-    end
+    KNOW["3_knowledge.py<br/><i>PDF → passages,<br/>BM25 search</i>"]
 
-    LLM["llm.py<br/><i>Ollama client</i>"]
+    LLM["4_llm.py<br/><i>Ollama client</i>"]
 
     subgraph data["Data files"]
         PDF[("user_manual.pdf")]
@@ -51,58 +53,54 @@ flowchart TD
     WEB --> ORCH
     CLI --> ORCH
     RUN --> ORCH
-    WEB --> BASE
-    ING --> INGM
+    WEB --> KNOW
     REP --> COM
 
     ORCH --> INIT
-    ORCH --> BASE
+    ORCH --> KNOW
     ORCH --> LLM
     INIT --> A1 & A2 & A3 & A4 & A5
 
     A1 --> COM
     A4 --> COM
     A5 --> COM
-    A1 & A2 & A3 --> BASE
-    A4 --> BASE
+    A1 & A2 & A3 & A4 --> KNOW
     A1 & A2 & A3 & A4 & A5 -.->|"chat() on the LLM object<br/>the orchestrator gives them"| LLM
 
-    BASE --> INGM
     LLM --> OLL
 
-    INGM --> PDF & CUR
-    INGM -- writes --> IDX
-    BASE -- reads --> IDX
+    KNOW --> PDF & CUR
+    KNOW -- "writes, then reads" --> IDX
     RUN --> Q
     RUN -- writes --> ANS
     REP --> Q & ANS
 ```
 
-Not drawn, to keep the graph readable: **almost every file imports `config.py`** (paths,
-models, modes, limits) **and `schemas.py`** (the data types passed between them). Neither
+Not drawn, to keep the graph readable: **almost every file imports `1_config.py`** (paths,
+models, modes, limits) **and `2_schemas.py`** (the data types passed between them). Neither
 imports anything else from the project, so they sit underneath everything.
 
-The dotted arrows: the agents never import `llm.py`. The orchestrator creates one `OllamaLLM`
+The dotted arrows: the agents never import `4_llm.py`. The orchestrator creates one `OllamaLLM`
 and hands it to each agent that should use it. An agent given `None` uses its offline rules
 instead. That is how one set of agents makes all six modes.
 
 ## 2. What happens to one question
 
 The same flow runs whether the question comes from the web app, the CLI or the evaluation.
-The names on the arrows are the types from `schemas.py`.
+The names on the arrows are the types from `2_schemas.py`.
 
 ```mermaid
 sequenceDiagram
     actor U as Technician
-    participant E as webapp.py / cli.py
-    participant O as orchestrator.py
+    participant E as 7_webapp.py / 6_cli.py
+    participant O as 5_orchestrator.py
     participant T as 1 triage
     participant R as 2 retriever
     participant D as 3 diagnostician
     participant W as 4 writer
     participant V as 5 verifier
-    participant K as knowledge/base.py
-    participant L as llm.py → Ollama
+    participant K as 3_knowledge.py
+    participant L as 4_llm.py → Ollama
 
     U->>E: question + mode
     E->>O: build_orchestrator(mode), then ask(question)
@@ -149,27 +147,26 @@ Which agents call the LLM depends on the mode:
 
 | File | What it does | Used by |
 |---|---|---|
-| [config.py](../src/pool_assistant/config.py) | Paths (the manual, its English pages), the Ollama models, the six modes, limits | almost everything |
-| [schemas.py](../src/pool_assistant/schemas.py) | The data types passed between files (Pydantic) | almost everything |
-| [llm.py](../src/pool_assistant/llm.py) | Sends prompts to Ollama, checks the JSON replies, reports failures as `LLMError` | orchestrator (creates it), agents (call it), entry points (catch its errors) |
-| [orchestrator.py](../src/pool_assistant/orchestrator.py) | Builds the agents for a mode and runs them in order for each question | webapp, cli, evaluation/run |
-| [agents/\_\_init\_\_.py](../src/pool_assistant/agents/__init__.py) | Loads the five numbered agent files under plain names | orchestrator |
+| [\_\_init\_\_.py](../src/pool_assistant/__init__.py) | Lets every numbered file be imported by its name without the number | Python, on every import |
+| [1_config.py](../src/pool_assistant/1_config.py) | Paths (the manual, its English pages), the Ollama models, the six modes, limits | almost everything |
+| [2_schemas.py](../src/pool_assistant/2_schemas.py) | The data types passed between files (Pydantic) | almost everything |
+| [3_knowledge.py](../src/pool_assistant/3_knowledge.py) | Splits the PDF into page-sized passages and saves the index; loads it with the troubleshooting table; BM25 word search | orchestrator, webapp, agents. Run on its own (`python -m pool_assistant.knowledge`), it rebuilds the index |
+| [4_llm.py](../src/pool_assistant/4_llm.py) | Sends prompts to Ollama, checks the JSON replies, reports failures as `LLMError` | orchestrator (creates it), agents (call it), entry points (catch its errors) |
+| [5_orchestrator.py](../src/pool_assistant/5_orchestrator.py) | Builds the agents for a mode and runs them in order for each question | webapp, cli, evaluation/run |
+| [agents/\_\_init\_\_.py](../src/pool_assistant/agents/__init__.py) | Exports the five agent classes | orchestrator |
+| [agents/0_common.py](../src/pool_assistant/agents/0_common.py) | Shared rules: citations, language, symptom keywords, safety words and text | triage, writer, verifier, evaluation/report |
 | [agents/1_triage.py](../src/pool_assistant/agents/1_triage.py) | Scope, intent, language, product, symptoms | orchestrator |
 | [agents/2_retriever.py](../src/pool_assistant/agents/2_retriever.py) | Finds the manual passages to answer from | orchestrator |
 | [agents/3_diagnostician.py](../src/pool_assistant/agents/3_diagnostician.py) | Ranks causes from the troubleshooting table | orchestrator |
 | [agents/4_writer.py](../src/pool_assistant/agents/4_writer.py) | Writes the answer with citations and the safety warning | orchestrator |
 | [agents/5_verifier.py](../src/pool_assistant/agents/5_verifier.py) | Checks citations and the safety warning (and grounding, in LLM modes) | orchestrator |
-| [agents/common.py](../src/pool_assistant/agents/common.py) | Shared rules: citations, language, symptom keywords, safety words and text | triage, writer, verifier, evaluation/report |
-| [knowledge/base.py](../src/pool_assistant/knowledge/base.py) | Loads the passages and tables; BM25 word search | orchestrator, webapp, agents |
-| [knowledge/ingestion.py](../src/pool_assistant/knowledge/ingestion.py) | Splits the PDF into page-sized passages and saves the index | knowledge/base, scripts/ingest |
-| [cli.py](../src/pool_assistant/cli.py) | `pool-assistant "question" --mode ...` | you |
-| [webapp.py](../src/pool_assistant/webapp.py) | `pool-assistant-web`: the Shiny chat | you |
+| [6_cli.py](../src/pool_assistant/6_cli.py) | `pool-assistant "question" --mode ...` | you |
+| [7_webapp.py](../src/pool_assistant/7_webapp.py) | `pool-assistant-web`: the Shiny chat | you |
 
-**Scripts and evaluation**
+**Evaluation**
 
 | File | What it does |
 |---|---|
-| [scripts/ingest.py](../scripts/ingest.py) | Rebuilds `data/index/chunks.jsonl` from the PDF (run after changing a manual) |
 | [evaluation/run.py](../evaluation/run.py) | Asks the 10 questions in every mode and saves the answers and times |
 | [evaluation/report.py](../evaluation/report.py) | Scores the saved answers and writes `REPORT.md` |
 

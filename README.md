@@ -71,7 +71,7 @@ python -m venv .venv
 pip install -e ".[dev]"
 
 # 3. Build the index from the PDF (also done automatically on first run)
-python scripts/ingest.py
+python -m pool_assistant.knowledge
 ```
 
 | Mode | Ollama model | Size | Notes |
@@ -80,11 +80,11 @@ python scripts/ingest.py
 | `llama` | `llama3.2:3b` | 2.0 GB | Meta. |
 | `gemma` | `gemma3:4b` | 3.3 GB | Google. |
 | `deepseek` | `deepseek-v2:16b` | 8.9 GB | DeepSeek. Mixture of experts: uses ~2.4B parameters per token, so it runs about as fast as the others on CPU, but needs ~10 GB of RAM. |
-| `auto` | `qwen2.5:3b` | 1.9 GB | The LLM for triage and writer only (`AUTO_MODEL` in config.py). |
+| `auto` | `qwen2.5:3b` | 1.9 GB | The LLM for triage and writer only (`AUTO_MODEL` in 1_config.py). |
 | `offline` | none | — | No Ollama needed. Answers in milliseconds, English templates only. |
 
 To use a different size (e.g. `llama3.1:8b`), change its tag in `MODELS` in
-[config.py](src/pool_assistant/config.py). Reasoning models such as `deepseek-r1` don't work
+[1_config.py](src/pool_assistant/1_config.py). Reasoning models such as `deepseek-r1` don't work
 well here: they reason before every reply, which takes minutes on CPU and uses up the token
 limit before the JSON is written.
 
@@ -134,16 +134,19 @@ Fluidra_GenAI_Engineer_Technical_Assessment_v1/
 data/
   curated/*_troubleshooting.json troubleshooting table transcribed from the manual (p. 13);
                                  the symptom keywords are only used in offline mode
-src/pool_assistant/
+src/pool_assistant/              numbered in the order they come into use; each file only
+                                 uses files with a lower number
+  1_config.py                    paths, models, modes and limits
+  2_schemas.py                   data passed between agents and returned to the app
+  3_knowledge.py                 PDF -> passages, and BM25 search for offline and auto modes;
+                                 python -m pool_assistant.knowledge rebuilds the index
+  4_llm.py                       Ollama client
   agents/                        the five agents, numbered in run order:
+    0_common.py                  shared helpers (keyword matching, citations, safety text)
     1_triage.py 2_retriever.py 3_diagnostician.py 4_writer.py 5_verifier.py
-    common.py                    shared helpers (keyword matching, citations, safety text)
-  knowledge/                     PDF chunking, and BM25 search for offline and auto modes
-  llm.py                         Ollama client
-  orchestrator.py                runs the agents for a question
-  schemas.py                     data passed between agents and returned to the app
-  webapp.py, cli.py              entry points: Shiny chat and command line
-scripts/ingest.py                rebuilds the index
+  5_orchestrator.py              runs the agents for a question
+  6_cli.py, 7_webapp.py          entry points: command line and Shiny chat
+  __init__.py                    lets `import config` load 1_config.py (names without numbers)
 docs/ARCHITECTURE.md             design, limitations and deployment
 docs/MODULES.md                  how the Python files use each other (diagrams)
 evaluation/                      comparison of the six modes (REPORT.md)

@@ -1,4 +1,5 @@
-"""The five agents, numbered in the order the orchestrator runs them.
+"""The five agents, numbered in the order the orchestrator runs them (0_common.py holds the
+rules they share).
 
 Every agent has two implementations, and the mode the user picks chooses one:
 - an LLM model (qwen, llama, gemma, deepseek): the agent decides with the LLM;
@@ -6,18 +7,15 @@ Every agent has two implementations, and the mode the user picks chooses one:
 - auto: triage and writer use the LLM, retriever, diagnostician and verifier the offline rules.
 There is no fallback between them: if an LLM call fails, the question fails.
 
-The file names start with a number, which `import` statements can't use, so they are
-loaded with importlib.
+The files are imported by their names without the number (see pool_assistant/__init__.py):
+`triage` is 1_triage.py, and so on. Other modules can then write
+`from pool_assistant.agents import TriageAgent`.
 """
 
-from importlib import import_module
-
-# The same as `from pool_assistant.agents.1_triage import TriageAgent`, which Python's syntax
-# doesn't allow. Other modules can then write `from pool_assistant.agents import TriageAgent`.
-TriageAgent = import_module("pool_assistant.agents.1_triage").TriageAgent
-RetrieverAgent = import_module("pool_assistant.agents.2_retriever").RetrieverAgent
-DiagnosticianAgent = import_module("pool_assistant.agents.3_diagnostician").DiagnosticianAgent
-WriterAgent = import_module("pool_assistant.agents.4_writer").WriterAgent
-VerifierAgent = import_module("pool_assistant.agents.5_verifier").VerifierAgent
+from pool_assistant.agents.triage import TriageAgent
+from pool_assistant.agents.retriever import RetrieverAgent
+from pool_assistant.agents.diagnostician import DiagnosticianAgent
+from pool_assistant.agents.writer import WriterAgent
+from pool_assistant.agents.verifier import VerifierAgent
 
 __all__ = ["TriageAgent", "RetrieverAgent", "DiagnosticianAgent", "WriterAgent", "VerifierAgent"]
