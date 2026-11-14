@@ -19,18 +19,21 @@ from pool_assistant import config
 from pool_assistant.llm import LLMError
 from pool_assistant.orchestrator import build_orchestrator
 
+# paths relative to this file, so the script works from any folder
 HERE = Path(__file__).parent
 QUESTIONS = HERE / "questions.json"
 ANSWERS = HERE / "results" / "answers.jsonl"
 
 
 def main():
+    # --- arguments: which modes to run, and whether to start over ---
     parser = argparse.ArgumentParser()
     parser.add_argument("--modes", nargs="+", choices=config.MODES, default=list(config.MODES))
     parser.add_argument("--fresh", action="store_true", help="delete previous answers first")
     args = parser.parse_args()
-    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stdout.reconfigure(encoding="utf-8")  # Windows consoles default to cp1252
 
+    # --- what is already done: the (mode, question id) pairs saved by earlier runs ---
     questions = json.loads(QUESTIONS.read_text(encoding="utf-8"))
     ANSWERS.parent.mkdir(exist_ok=True)
     if args.fresh:
@@ -39,10 +42,12 @@ def main():
     if ANSWERS.exists():
         done = {(r["mode"], r["id"]) for r in map(json.loads, ANSWERS.read_text(encoding="utf-8").splitlines())}
 
+    # --- one mode at a time, so Ollama keeps a single model loaded ---
     for mode in args.modes:
         todo = [q for q in questions if (mode, q["id"]) not in done]
         if not todo:
             continue
+        # build the mode and warm the model up; a mode whose model is missing is skipped
         try:
             assistant = build_orchestrator(mode)
             if assistant.llm:
@@ -53,6 +58,7 @@ def main():
             print(f"[{mode}] skipped: {e}", flush=True)
             continue
 
+        # ask each question, timing the whole answer (all agents, including rewrites)
         for q in todo:
             start = time.perf_counter()
             record = {"mode": mode, "id": q["id"], "question": q["question"]}
@@ -63,6 +69,7 @@ def main():
                 record |= {"error": str(e), "response": None}
             record["seconds"] = round(time.perf_counter() - start, 2)
 
+            # save right away (one JSON line per answer), so nothing is lost if the run stops
             with ANSWERS.open("a", encoding="utf-8") as f:
                 f.write(json.dumps(record, ensure_ascii=False) + "\n")
             status = "error" if record["error"] else ("verified" if record["response"]["verified"] else "unverified")

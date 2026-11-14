@@ -146,4 +146,6 @@ src/pool_assistant/
   webapp.py, cli.py              entry points: Shiny chat and command line
 scripts/ingest.py                rebuilds the index
 docs/ARCHITECTURE.md             design, limitations and deployment
+docs/MODULES.md                  how the Python files use each other (diagrams)
+evaluation/                      comparison of the six modes (REPORT.md)
 ```

@@ -1,8 +1,17 @@
+"""Agent 5, verifier: the last check before the answer is returned.
+
+It checks that the answer cites pages that are really in the evidence, sticks to the evidence
+(LLM mode only) and has the disconnect-power warning when electrical work is involved. A
+rejected answer goes back to the writer once; if it is rejected again, it is returned with a
+warning that it didn't pass the check.
+"""
+
 from pool_assistant.agents.common import NOT_FOUND, cited_pages, has_safety_warning, needs_safety_warning
 from pool_assistant.schemas import Diagnosis, Evidence, Verdict, VerificationLLMOutput
 
 SAFETY_PAGES = {5, 8}  # cited by the standard safety warning
 
+# Instructions for the LLM. {pages} is the list of pages the answer may cite.
 SYSTEM_PROMPT = """You check answers written for pool technicians before they are sent. \
 Compare the answer with the manual excerpts and likely causes it was written from.
 
@@ -29,8 +38,11 @@ class VerifierAgent:
         self.llm = llm  # None in offline mode
 
     def run(self, question: str, answer: str, evidence: list[Evidence], diagnosis: Diagnosis | None) -> Verdict:
+        # the fixed "not found" message has nothing to check
         if answer == NOT_FOUND:
             return Verdict(approved=True, issues=[])
+        # the pages the answer may cite: those of the passages and of the diagnosed causes,
+        # plus the two pages the safety warning cites
         allowed = {ev.chunk.page for ev in evidence} | SAFETY_PAGES
         if diagnosis:
             allowed |= {c.source_page for c in diagnosis.candidates}
@@ -41,6 +53,7 @@ class VerifierAgent:
     # --- LLM mode: the model reviews the answer against the evidence ---
 
     def run_llm(self, question, answer, evidence, diagnosis, allowed: set[int]) -> Verdict:
+        # the model gets the answer together with everything it was written from
         parts = [f"Question: {question}", f"Answer to check:\n{answer}"]
         if diagnosis and diagnosis.candidates:
             parts.append("Likely causes:\n" + "\n".join(
@@ -54,6 +67,8 @@ class VerifierAgent:
         out = self.llm.chat(prompt, "\n\n".join(parts), schema=VerificationLLMOutput)
 
         # the verdict follows the model's yes/no answers; its own issue list explains them
+        # (each key is the instruction given to the writer if that check fails and the model
+        # didn't list any issues itself)
         checks = {
             "Cite a page from the excerpts as [p. N] after each statement.": out.citations_ok,
             "Only state what the excerpts and likely causes say.": out.supported,
@@ -67,12 +82,14 @@ class VerifierAgent:
 
     def run_offline(self, question: str, answer: str, allowed: set[int]) -> Verdict:
         issues = []
+        # rule 1: at least one [p. N] citation, and only pages from the evidence
         pages = cited_pages(answer)
         if not pages:
             issues.append("The answer has no [p. N] citations.")
         elif pages - allowed:
             issues.append(f"Pages {sorted(pages - allowed)} are cited but not in the evidence.")
 
+        # rule 2: electrical words in the question or answer require the disconnect-power warning
         if needs_safety_warning(question, answer) and not has_safety_warning(answer):
             issues.append("Electrical or mechanical work without the disconnect-power warning.")
 

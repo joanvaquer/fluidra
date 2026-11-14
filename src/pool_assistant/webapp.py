@@ -1,7 +1,11 @@
 """Web app: a chat with the assistant. Run with: pool-assistant-web
 (or: shiny run src/pool_assistant/webapp.py) and open http://127.0.0.1:8000.
 
-The mode is picked in the sidebar for every question; as in the CLI, there is no default."""
+The mode is picked in the sidebar for every question; as in the CLI, there is no default.
+
+A Shiny app has two parts: the UI (app_ui, the page layout) and the server (server(), the
+code that reacts to what the user does). Here the server answers each chat message.
+"""
 
 import asyncio
 import threading
@@ -15,6 +19,7 @@ from pool_assistant.llm import LLMError
 from pool_assistant.orchestrator import Orchestrator, build_orchestrator
 from pool_assistant.schemas import AssistantResponse
 
+# The options of the mode drop-down: value -> label shown. The empty value means "not chosen".
 MODE_LABELS = {
     "": "Choose a mode…",
     **{name: f"{name} ({tag}): every agent uses the LLM" for name, tag in config.MODELS.items()},
@@ -22,10 +27,11 @@ MODE_LABELS = {
     config.OFFLINE: "offline: word matching and rules, no LLM",
 }
 
+# --- the page: a sidebar with the settings, and the chat ---
 app_ui = ui.page_sidebar(
     ui.sidebar(
-        ui.input_select("mode", "Mode", MODE_LABELS),
-        ui.input_checkbox("trace", "Show what each agent did"),
+        ui.input_select("mode", "Mode", MODE_LABELS),                    # read as input.mode()
+        ui.input_checkbox("trace", "Show what each agent did"),          # read as input.trace()
         ui.markdown(
             "The LLM modes run on this machine with Ollama and take 1–4 minutes per question "
             "on a CPU. `offline` answers instantly."
@@ -38,17 +44,19 @@ app_ui = ui.page_sidebar(
         greeting="Hi! Pick a mode on the left and ask a technical question about the pump.",
     ),
     title="Pool Technician Assistant",
-    fillable=True,
+    fillable=True,  # the chat fills the window height
 )
 
 
-@cache
+# --- answering questions (plain Python, no Shiny: the tests call these directly) ---
+
+@cache  # load the manual once, the first time it's needed, and reuse it
 def knowledge_base() -> KnowledgeBase:
     return load_knowledge_base()
 
 
 assistants: dict[str, Orchestrator] = {}  # one per mode, built the first time it is asked for
-assistants_lock = threading.Lock()
+assistants_lock = threading.Lock()        # so two users can't build the same mode at once
 
 
 def ask(mode: str, question: str) -> AssistantResponse:
@@ -65,17 +73,22 @@ def format_response(response: AssistantResponse, trace: bool) -> str:
     if response.sources:
         parts.append("**Sources:** " + ", ".join(f"p. {p}" for p in sorted({s.page for s in response.sources})))
     if trace:
+        # a table with one row per agent step: agent | time | what it did
         rows = "\n".join(f"| {s.agent} | {s.duration_ms:,} ms | {s.summary} |" for s in response.trace)
         model = f" ({response.model})" if response.model else ""
         parts.append(f"*Mode: {response.mode}{model}*\n\n| Agent | Time | What it did |\n|---|---|---|\n{rows}")
     return "\n\n".join(parts)
 
 
-def server(input, output, session):
-    chat = ui.Chat("chat")
+# --- the server: runs once per browser session ---
 
+def server(input, output, session):
+    chat = ui.Chat("chat")  # connects to the ui.chat_ui("chat") on the page
+
+    # called every time the user sends a message
     @chat.on_user_submit
     async def answer(question: str):
+        # read the settings now, as they were when the message was sent
         mode, trace = input.mode(), input.trace()
         if not mode:
             await chat.append_message("Choose a mode in the sidebar first.")
@@ -92,10 +105,13 @@ def server(input, output, session):
         await chat.append_message(format_response(response, trace))
 
 
+# the app object that `shiny run` and run_app() serve
 app = App(app_ui, server)
 
 
 def main():
+    """Entry point of the `pool-assistant-web` command (see pyproject.toml): start the server
+    and open the app in the browser."""
     run_app("pool_assistant.webapp:app", launch_browser=True)
 
 

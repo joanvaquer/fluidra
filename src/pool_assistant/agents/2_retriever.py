@@ -1,7 +1,15 @@
+"""Agent 2, retriever: finds the manual passages that answer the question.
+
+These passages are the only manual text the writer and the verifier see, so if the retriever
+misses the right page, the answer can't contain it.
+"""
+
 from pool_assistant import config
 from pool_assistant.knowledge import KnowledgeBase
 from pool_assistant.schemas import Evidence, RetrievalLLMOutput, TriageResult
 
+# Instructions for the LLM. {catalog} is the numbered list of all passages, {k} the maximum
+# number to pick.
 SYSTEM_PROMPT = """You find the passages of a pool equipment manual that answer a technician's \
 question.
 
@@ -30,11 +38,15 @@ class RetrieverAgent:
     # --- LLM mode: the model reads the list of passages and picks the relevant ones ---
 
     def run_llm(self, question: str, triage: TriageResult) -> list[Evidence]:
+        # 1. The catalogue: one line per passage of the product, with its number, page,
+        #    section and the start of its text (whitespace collapsed to keep it short).
         chunks = [c for c in self.kb.chunks if triage.product is None or c.product == triage.product]
         catalog = "\n".join(
             f"{i}. [p. {c.page}] {c.section}: {' '.join(c.text.split())[:PREVIEW_CHARS]}"
             for i, c in enumerate(chunks)
         )
+        # 2. The question, plus what triage worked out: the English search query and the
+        #    symptoms in the manual's words, which help match passages in English.
         user = f"Question: {question}\nIn the manual's words: {triage.search_query}"
         if triage.symptoms:
             user += "\nReported symptoms: " + "; ".join(triage.symptoms)
@@ -42,6 +54,8 @@ class RetrieverAgent:
         prompt = SYSTEM_PROMPT.format(k=config.EVIDENCE_K, catalog=catalog)
         out = self.llm.chat(prompt, user, schema=RetrievalLLMOutput)
 
+        # 3. Turn the numbers back into passages: drop repeats and numbers that don't exist,
+        #    keep at most EVIDENCE_K, and score them by position (first = 1, second = 0.5...).
         ids = [i for i in dict.fromkeys(out.passage_ids) if 0 <= i < len(chunks)]  # ignore made-up ids
         return [
             Evidence(chunk=chunks[i], score=1 / (rank + 1))
@@ -53,5 +67,7 @@ class RetrieverAgent:
     def run_offline(self, question: str, triage: TriageResult) -> list[Evidence]:
         # the symptom labels use the manual's wording, so they also find passages
         # when the question is paraphrased
+        # (dict.fromkeys removes duplicates and keeps the order, e.g. when the search query
+        # is the question itself)
         queries = list(dict.fromkeys([question, triage.search_query, *triage.symptoms]))
         return self.kb.search_many(queries, k=config.EVIDENCE_K, product=triage.product)

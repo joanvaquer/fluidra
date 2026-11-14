@@ -12,6 +12,8 @@ loaded with importlib.
 
 from importlib import import_module
 
+# The same as `from pool_assistant.agents.1_triage import TriageAgent`, which Python's syntax
+# doesn't allow. Other modules can then write `from pool_assistant.agents import TriageAgent`.
 TriageAgent = import_module("pool_assistant.agents.1_triage").TriageAgent
 RetrieverAgent = import_module("pool_assistant.agents.2_retriever").RetrieverAgent
 DiagnosticianAgent = import_module("pool_assistant.agents.3_diagnostician").DiagnosticianAgent

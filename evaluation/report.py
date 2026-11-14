@@ -15,6 +15,7 @@ from pathlib import Path
 from pool_assistant import config
 from pool_assistant.agents.common import cited_pages, has_safety_warning
 
+# paths relative to this file, so the script works from any folder
 HERE = Path(__file__).parent
 QUESTIONS = HERE / "questions.json"
 ANSWERS = HERE / "results" / "answers.jsonl"
@@ -23,12 +24,15 @@ REPORT = HERE / "REPORT.md"
 ANSWERS_MD = HERE / "results" / "answers.md"
 
 SAFETY_PAGES = {5, 8}  # the standard safety warning cites them
+# which agents call the LLM in each mode, to count the LLM calls of an answer from its trace
 LLM_AGENTS = {
     **{m: {"triage", "retriever", "diagnostician", "writer", "verifier"} for m in config.MODELS},
     config.AUTO: config.AUTO_LLM_AGENTS,
     config.OFFLINE: set(),
 }
 
+# Every check: its name in the code -> the label shown in the report. Each answer is scored
+# only on the checks that apply to its question (see score()).
 CHECKS = {
     "answered": "No error: the mode returned an answer",
     "scope": "In-scope questions answered, out-of-scope refused",
@@ -59,12 +63,15 @@ LANGUAGE_WORDS = {
 
 
 def answer_language(text: str) -> str:
+    """The language an answer is written in: the one with most of its words in LANGUAGE_WORDS."""
+    # citations like [p. 13] are removed first, so they don't count as words
     text = re.sub(r"\[p\.[^\]]*\]", " ", text.lower())
     words = re.findall(r"[a-zàáèéíïòóúüçñâêôãõäöß']+", text)
     scores = {lang: sum(w in vocab for w in words) for lang, vocab in LANGUAGE_WORDS.items()}
     return max(scores, key=scores.get)
 
 
+# A warranty period in an answer, e.g. "2 years of warranty" or "warranty ... two years".
 INVENTED_YEARS = re.compile(
     r"\b(\d+|one|two|three|five|ten)[\s-]*(years?|yr)\b.{0,40}warrant|warrant.{0,60}\b(\d+|one|two|three|five|ten)[\s-]*(years?|yr)\b",
     re.IGNORECASE | re.DOTALL,
@@ -73,12 +80,14 @@ INVENTED_YEARS = re.compile(
 
 def score(q: dict, record: dict) -> dict[str, bool | None]:
     """check -> passed (True/False), or None when the check doesn't apply to this question."""
-    result = dict.fromkeys(CHECKS)
+    result = dict.fromkeys(CHECKS)  # every check starts as "doesn't apply"
     r = record["response"]
+    # 1. did the mode answer at all?
     result["answered"] = r is not None
     if r is None:
         return result
 
+    # 2. scope: refusing is right for the out-of-scope question, wrong for the others
     answer = r["answer"]
     refused = r["intent"] == "out_of_scope"
     if q["intent"] == ["out_of_scope"]:
@@ -91,15 +100,18 @@ def score(q: dict, record: dict) -> dict[str, bool | None]:
         return result
     result["scope"] = not refused
 
+    # 3. triage: intent and language
     result["intent"] = r["intent"] in q["intent"]
     result["language"] = r["language"] == q["language"]
     result["answer_language"] = answer_language(answer) == q["language"]
 
+    # 4. diagnosis (fault questions only): a correct cause found, and ranked first
     if q["causes"]:
         causes = [c["cause"] for c in (r["diagnosis"] or {}).get("candidates", [])]
         result["cause_found"] = any(c in q["causes"] for c in causes)
         result["top_cause"] = bool(causes) and causes[0] in q["causes"]
 
+    # 5. citations: the expected page is cited, and no page outside the evidence is cited
     cited = cited_pages(answer)
     allowed = {s["page"] for s in r["sources"]} | SAFETY_PAGES
     allowed |= {c["source_page"] for c in (r["diagnosis"] or {}).get("candidates", [])}
@@ -107,6 +119,7 @@ def score(q: dict, record: dict) -> dict[str, bool | None]:
         result["page_cited"] = bool(set(q["pages"]) & cited)
     if q.get("trap") != "no_invented_years":
         result["citations_valid"] = bool(cited) and cited <= allowed
+    # 6. content: the safety warning when needed, the key fact, and no invented warranty
     if q["safety"]:
         result["safety"] = has_safety_warning(answer)
     if q["facts"]:
@@ -117,15 +130,18 @@ def score(q: dict, record: dict) -> dict[str, bool | None]:
 
 
 def pct(values) -> str:
+    """Share of True among the checks that apply (None is skipped), e.g. "80%"."""
     values = [v for v in values if v is not None]
     return f"{100 * sum(values) / len(values):.0f}%" if values else "—"
 
 
 def seconds(s: float) -> str:
+    """A time for the report: "135 s", "7.9 s" or "<0.1 s"."""
     return f"{s:.0f} s" if s >= 10 else f"{s:.1f} s" if s >= 0.1 else "<0.1 s"
 
 
 def main():
+    # --- load the questions and the answers, and score every answer ---
     questions = {q["id"]: q for q in json.loads(QUESTIONS.read_text(encoding="utf-8"))}
     records = {}
     for line in ANSWERS.read_text(encoding="utf-8").splitlines():
@@ -135,9 +151,11 @@ def main():
 
     scores = {k: score(questions[k[1]], r) for k, r in records.items()}
 
+    # all the check results of one mode, for its overall score
     def mode_checks(mode):
         return [v for (m, _), s in scores.items() if m == mode for v in s.values()]
 
+    # --- REPORT.md: an introduction, the findings, then the tables ---
     out = ["# Evaluation: six modes, ten questions", ""]
     out += [
         f"Every mode answered the same {len(questions)} questions, in {len(set(q['language'] for q in questions.values()))} "
@@ -149,10 +167,11 @@ def main():
         "Re-run with `python evaluation/run.py`, then `python evaluation/report.py`.",
         "",
     ]
+    # the findings written by a person after reading the answers
     if FINDINGS.exists():
         out += [FINDINGS.read_text(encoding="utf-8").strip(), ""]
 
-    # --- summary ---
+    # --- summary: one row per mode with its score, times, LLM calls and verified answers ---
     out += ["## Summary", "",
             "| Mode | Model | Score | Mean time | Median | Slowest | LLM calls / question | Verified | Errors |",
             "|---|---|---|---|---|---|---|---|---|"]
@@ -172,7 +191,7 @@ def main():
             "*Verified*: answers the mode's own verifier approved (it is not a measure of correctness). "
             "*LLM calls*: 2 in `auto` and 5 in the LLM modes, plus 1 or 2 when an answer is rewritten.", ""]
 
-    # --- per check ---
+    # --- per check: how often each mode passed each check ---
     out += ["## Results by check", "", "| Check | " + " | ".join(f"`{m}`" for m in modes) + " |",
             "|---|" + "---|" * len(modes)]
     for check, label in CHECKS.items():
@@ -180,7 +199,7 @@ def main():
         out.append(f"| {label} | " + " | ".join(cells) + " |")
     out.append("")
 
-    # --- per question ---
+    # --- per question: each answer's score and time ---
     out += ["## Results by question", "",
             "Score of each answer (checks passed / applicable) and its time.", "",
             "| Question | Lang | Variant | " + " | ".join(f"`{m}`" for m in modes) + " |",
@@ -209,7 +228,7 @@ def main():
 
     REPORT.write_text("\n".join(out), encoding="utf-8")
 
-    # --- every answer, for reading ---
+    # --- results/answers.md: every answer in full, grouped by question, with its failed checks ---
     lines = ["# Every answer", ""]
     for qid, q in questions.items():
         lines += [f"## {qid} ({q['language']}, {q['variant']}): {q['question']}", "", f"*Expected:* {q['note']}", ""]

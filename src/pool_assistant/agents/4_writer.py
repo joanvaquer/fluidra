@@ -1,9 +1,18 @@
+"""Agent 4, writer: writes the answer the technician reads.
+
+It only uses what the earlier agents found (the passages and the diagnosis), cites a page
+after each statement and adds the disconnect-power warning for electrical or mechanical work.
+If the verifier rejects the answer, it is called again with the verifier's issues as feedback.
+"""
+
 from pool_assistant.agents.common import (
     LANGUAGE_NAMES, NOT_FOUND, SAFETY_WARNINGS, has_safety_warning, needs_safety_warning, safety_warning,
 )
 from pool_assistant.knowledge.base import tokenize
 from pool_assistant.schemas import Diagnosis, Evidence, TriageResult
 
+# Instructions for the LLM. {language} is the question's language, {safety} the standard
+# safety warning in English, which the model translates.
 SYSTEM_PROMPT = """You are an assistant for professional pool technicians. Answer the \
 technician's question using ONLY the manual excerpts and the likely causes given below.
 
@@ -36,8 +45,9 @@ class WriterAgent:
         triage: TriageResult,
         evidence: list[Evidence],
         diagnosis: Diagnosis | None,
-        feedback: list[str],
+        feedback: list[str],  # the verifier's issues with the previous draft, empty the first time
     ) -> str:
+        # nothing found in the manual: say so instead of letting a model guess
         if not evidence and not (diagnosis and diagnosis.candidates):
             return NOT_FOUND
         if self.llm:
@@ -47,37 +57,45 @@ class WriterAgent:
     # --- LLM mode ---
 
     def write_llm(self, question, triage, evidence, diagnosis, feedback) -> str:
+        # The user message is built in parts: the question, then the causes, then the
+        # passages, then (on a rewrite) what was wrong with the previous draft.
         parts = [f"Question: {question}"]
         if diagnosis and diagnosis.candidates:
+            # e.g. "1. Pre-filter blocked (high) -> Clean the filter [p. 13]"
             causes = "\n".join(
                 f"{i}. {c.cause} ({c.likelihood}) -> {c.solution} [p. {c.source_page}]"
                 for i, c in enumerate(diagnosis.candidates, 1)
             )
             parts.append(f"Likely causes, from the manual's troubleshooting table:\n{causes}")
         if evidence:
+            # each passage starts with its page, so the model knows what to cite
             excerpts = "\n\n".join(f"[p. {e.chunk.page}] {e.chunk.section}\n{e.chunk.text}" for e in evidence)
             parts.append(f"Manual excerpts:\n{excerpts}")
         if feedback:
             parts.append("Your previous answer was rejected. Fix these problems:\n" + "\n".join(f"- {f}" for f in feedback))
 
+        # the language code from triage, e.g. "es", becomes a name the model understands
         language = LANGUAGE_NAMES.get(triage.language, "English")
         prompt = SYSTEM_PROMPT.format(language=language, safety=SAFETY_WARNINGS["en"])
-        return self.llm.chat(prompt, "\n\n".join(parts))
+        return self.llm.chat(prompt, "\n\n".join(parts))  # no schema: the answer is free text
 
     # --- offline mode: fixed templates ---
 
     def write_offline(self, question: str, evidence: list[Evidence], diagnosis: Diagnosis | None) -> str:
         if diagnosis and diagnosis.candidates:
+            # a fault: the symptoms, the numbered causes with their fixes, and what to check first
             lines = [f"**Reported symptoms:** {'; '.join(diagnosis.matched_symptoms)}.", "", "**Likely causes:**"]
             for i, c in enumerate(diagnosis.candidates, 1):
                 lines.append(f"{i}. **{c.cause}** ({c.likelihood}): {c.solution} [p. {c.source_page}]")
             lines += ["", f"**Check first:** {diagnosis.candidates[0].solution}."]
         else:
+            # any other question: the most relevant part of the three best passages
             lines = [f"From the {evidence[0].chunk.product} manual:"]
             for ev in evidence[:3]:
                 lines.append(f"- **{ev.chunk.section}:** {excerpt(ev.chunk.text, question)} [p. {ev.chunk.page}]")
         answer = "\n".join(lines)
 
+        # add the safety warning if the question or the answer mention electrical work
         if needs_safety_warning(question, answer) and not has_safety_warning(answer):
             answer += "\n\n" + safety_warning("en")
         return answer
@@ -86,17 +104,20 @@ class WriterAgent:
 def excerpt(text: str, question: str, limit: int = 450) -> str:
     """The lines of a passage that best match the question, up to `limit` characters."""
     lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+    # the line sharing most words with the question; start one line before it, for context
     query = set(tokenize(question))
     best = max(range(len(lines)), key=lambda i: len(query & set(tokenize(lines[i]))))
     start = max(0, best - 1)
 
+    # add whole lines until the limit
     result = ""
     for line in lines[start:]:
         if len(result) + len(line) > limit:
             break
         result = f"{result} {line}".strip()
-    result = result or text[:limit]
+    result = result or text[:limit]  # a single very long line: cut it at the limit
 
+    # "..." shows that text was left out before or after
     if start > 0:
         result = "... " + result
     if len(result) < len(" ".join(lines[start:])):
