@@ -1,21 +1,20 @@
 {
-  "doc_id": "victoria-plus-silent-iom",
-  "product": "Victoria Plus Silent",
+  "doc_id": "astral-pool-iom",
+  "product": "ASTRAL Pool",
   "source_page": 13,
-  "note": "Hand-curated from the troubleshooting matrix on page 13 (English section). Text extraction loses the symptom/cause dots, so this table is transcribed from the rendered page and should be reviewed by a product expert.",
   "symptoms": [
     {"id": 1, "label": "The pump is not primed",
-     "keywords": ["prime", "primed", "priming", "self-priming", "no water", "air", "suction", "cebar", "ceba", "amorcer"]},
+     "keywords": ["prime", "primed", "priming", "no water", "air in", "suction", "cebar", "ceba"]},
     {"id": 2, "label": "The pump only releases a small flow of water",
-     "keywords": ["flow", "low flow", "small flow", "weak", "pressure", "little water", "caudal", "debit"]},
+     "keywords": ["flow", "weak", "pressure", "little water", "caudal"]},
     {"id": 3, "label": "The pump makes a noise",
-     "keywords": ["noise", "noisy", "loud", "vibration", "vibrates", "rattle", "ruido", "bruit"]},
+     "keywords": ["noise", "noisy", "loud", "vibration", "vibrates", "rattle", "ruido"]},
     {"id": 4, "label": "The pump will not start",
-     "keywords": ["will not start", "won't start", "doesn't start", "does not start", "no start", "not starting", "dead", "no arranca"]},
+     "keywords": ["will not start", "won't start", "doesn't start", "does not start", "not starting", "no arranca"]},
     {"id": 5, "label": "The motor is making a noise but will not start",
-     "keywords": ["hum", "humming", "buzz", "buzzing", "noise but", "makes noise and", "noise and does not start", "noise and won't start"]},
+     "keywords": ["hum", "humming", "buzz", "buzzing"]},
     {"id": 6, "label": "The motor has stopped",
-     "keywords": ["stopped", "stops", "shuts off", "shut off", "cuts out", "trips", "tripping", "overheat", "overheating", "thermal", "se para", "se detiene"]}
+     "keywords": ["stopped", "stops", "shuts off", "cuts out", "trips", "tripping", "overheat", "thermal", "se para", "se detiene"]}
   ],
   "rows": [
     {"cause": "Air entering the suction pipe", "solution": "Check the condition of connections and seals on the suction pipe", "symptoms": [1, 2]},

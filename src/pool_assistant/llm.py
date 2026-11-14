@@ -1,90 +1,73 @@
-"""LLM access behind one narrow interface: `structured(system, user, schema, effort)`.
+"""Free local LLMs through Ollama (Qwen, Llama, Gemma, DeepSeek): no API keys, runs on this machine."""
 
-Agents only ever ask for a validated Pydantic object, which keeps them provider-
-agnostic and lets tests inject a fake. `build_llm` returns None in offline mode;
-agents then use their deterministic fallback logic (the brief allows mocking).
-"""
-
-from __future__ import annotations
-
-import logging
-import os
-from typing import Protocol, TypeVar
-
-from pydantic import BaseModel
+import ollama
+from pydantic import BaseModel, ValidationError
 
 from pool_assistant import config
 
-log = logging.getLogger(__name__)
-
-T = TypeVar("T", bound=BaseModel)
-
 
 class LLMError(RuntimeError):
-    """The model call failed or returned something unusable; callers fall back."""
+    pass
 
 
-class StructuredLLM(Protocol):
-    name: str
+MAX_JSON_TOKENS = 512     # every structured reply is far shorter than this
+MAX_TEXT_TOKENS = 1024    # the writer's answer
+TIMEOUT_SECONDS = 600     # per call; a 7B model on a laptop CPU can need several minutes
 
-    def structured(self, *, system: str, user: str, schema: type[T], effort: str = "medium") -> T: ...
-
-
-class ClaudeLLM:
-    """Claude via the Anthropic SDK, using structured outputs for every agent call."""
-
-    def __init__(self, model: str = config.MODEL, client=None) -> None:
-        import anthropic
-
-        self._anthropic = anthropic
-        self.client = client or anthropic.Anthropic()
+class OllamaLLM:
+    def __init__(self, model: str, host: str = config.OLLAMA_HOST):
+        self.client = ollama.Client(host=host, timeout=TIMEOUT_SECONDS)
         self.model = model
-        self.name = f"claude:{model}"
 
-    def structured(self, *, system: str, user: str, schema: type[T], effort: str = "medium") -> T:
-        anthropic = self._anthropic
+    def chat(self, system: str, user: str, schema: type[BaseModel] | None = None):
+        """Send one prompt and return the reply.
+
+        With `schema`, Ollama constrains the reply to that JSON shape and it is parsed
+        into the Pydantic model; otherwise the plain text is returned.
+        """
         try:
-            response = self.client.beta.messages.parse(
+            response = self.client.chat(
                 model=self.model,
-                max_tokens=16000,
-                system=system,
-                messages=[{"role": "user", "content": user}],
-                output_format=schema,
-                output_config={"effort": effort},
-                # If a safety classifier declines, retry server-side on Anthropic's
-                # recommended fallback model instead of failing the request.
-                betas=["server-side-fallback-2026-07-01"],
-                fallbacks="default",
+                messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
+                format=schema.model_json_schema() if schema else None,
+                options={
+                    "temperature": 0,
+                    "num_ctx": 8192,
+                    "num_predict": MAX_JSON_TOKENS if schema else MAX_TEXT_TOKENS,  # stop runaway replies
+                },
+                keep_alive="30m",  # keep the model loaded between questions
             )
-        except anthropic.RateLimitError as e:
-            raise LLMError(f"rate limited: {e.message}") from e
-        except anthropic.APIStatusError as e:
-            raise LLMError(f"API error {e.status_code}: {e.message}") from e
-        except anthropic.APIConnectionError as e:
-            raise LLMError(f"connection error: {e}") from e
+        except Exception as e:  # Ollama not running, model missing, timeout...
+            raise LLMError(str(e)) from e
 
-        if response.stop_reason == "refusal":
-            raise LLMError("model declined the request")
-        if response.stop_reason == "max_tokens":
-            raise LLMError("response truncated at max_tokens")
-        if response.parsed_output is None:
-            raise LLMError("no structured output returned")
-        return response.parsed_output
+        if response.done_reason == "length":
+            raise LLMError(f"{self.model} did not finish its reply within the token limit")
 
-
-def _has_anthropic_credentials() -> bool:
-    return bool(os.getenv("ANTHROPIC_API_KEY") or os.getenv("ANTHROPIC_AUTH_TOKEN"))
+        text = response.message.content.strip()
+        if schema is None:
+            return text
+        try:
+            return schema.model_validate_json(text)
+        except ValidationError as e:
+            raise LLMError(f"the model returned invalid JSON: {e}") from e
 
 
-def build_llm(mode: str = config.LLM_MODE) -> StructuredLLM | None:
-    mode = mode.lower()
-    if mode == "offline":
-        return None
-    if mode == "claude":
-        return ClaudeLLM()
-    if mode == "auto":
-        if _has_anthropic_credentials():
-            return ClaudeLLM()
-        log.info("No Anthropic credentials found; running in offline mode.")
-        return None
-    raise ValueError(f"Unknown LLM mode {mode!r}; expected auto, claude or offline")
+def installed_models(host: str = config.OLLAMA_HOST) -> list[str]:
+    """Tags of the models downloaded in Ollama; raises LLMError if Ollama is not running."""
+    try:
+        return [m.model for m in ollama.Client(host=host).list().models]
+    except Exception as e:
+        raise LLMError(f"Ollama is not running at {host}. Start it, or install it from https://ollama.com") from e
+
+
+def build_llm(name: str) -> OllamaLLM:
+    """The model called `name` (a key of config.MODELS).
+
+    Raises LLMError if Ollama is not running or the model is not downloaded.
+    """
+    if name not in config.MODELS:
+        raise ValueError(f"unknown LLM {name!r}; expected one of {', '.join(config.MODELS)}")
+    tag = config.MODELS[name]
+    if tag not in installed_models():
+        raise LLMError(f"model {tag!r} is not downloaded. Download it with: ollama pull {tag}")
+    return OllamaLLM(tag)

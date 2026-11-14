@@ -1,15 +1,9 @@
-"""Typed contracts between agents.
-
-Models suffixed with ``Output`` are what an LLM-backed agent must return. They are
-passed to Claude as structured-output schemas, so they avoid defaults and numeric
-constraints and keep every field required.
-"""
-
-from __future__ import annotations
-
 from enum import Enum
+from typing import Literal
 
 from pydantic import BaseModel, Field
+
+from pool_assistant import config
 
 
 class Intent(str, Enum):
@@ -22,8 +16,7 @@ class Intent(str, Enum):
     OUT_OF_SCOPE = "out_of_scope"
 
 
-# --------------------------------------------------------------------------- knowledge
-
+# --- knowledge base ---
 
 class Chunk(BaseModel):
     chunk_id: str
@@ -40,16 +33,16 @@ class Evidence(BaseModel):
     score: float
 
 
+class Symptom(BaseModel):
+    id: int
+    label: str
+    keywords: list[str]
+
+
 class TroubleshootingRow(BaseModel):
     cause: str
     solution: str
     symptoms: list[int]
-
-
-class Symptom(BaseModel):
-    id: int
-    label: str
-    keywords: list[str] = Field(default_factory=list)
 
 
 class TroubleshootingMatrix(BaseModel):
@@ -60,64 +53,79 @@ class TroubleshootingMatrix(BaseModel):
     rows: list[TroubleshootingRow]
 
 
-# --------------------------------------------------------------------------- agent outputs
+# --- agent outputs ---
 
+# The *LLMOutput models are what each agent asks the LLM for (sent to Ollama as a JSON schema).
+# The lists have a maximum length: small models in JSON mode can otherwise repeat items until
+# the context is full, which takes many minutes on a CPU.
 
-class TriageOutput(BaseModel):
-    """Triage agent: what is being asked, about which product, in which language."""
-
+class TriageLLMOutput(BaseModel):
     in_scope: bool
     intent: Intent
-    language: str  # ISO 639-1 code of the technician's question, e.g. "en", "es"
-    product: str | None  # name from the product catalog, or null when not identifiable
-    symptoms: list[str]  # observed symptoms, paraphrased in English
-    search_queries: list[str]  # 1-3 English queries for the manual index
-    reasoning: str
+    language: str
+    product: str | None
+    symptom_ids: list[int] = Field(max_length=6)
+    search_query: str
 
 
-class EvidenceSelectionOutput(BaseModel):
-    """Retriever agent: which candidate passages actually answer the question."""
+class RetrievalLLMOutput(BaseModel):
+    passage_ids: list[int] = Field(max_length=config.EVIDENCE_K)
 
-    selected_chunk_ids: list[str]
-    missing_information: str  # what the passages do not cover; empty string if nothing
+
+class RankedCause(BaseModel):
+    row_id: int
+    likelihood: Literal["high", "medium", "low"]
+
+
+class DiagnosisLLMOutput(BaseModel):
+    causes: list[RankedCause] = Field(max_length=6)
+
+
+class VerificationLLMOutput(BaseModel):
+    citations_ok: bool
+    supported: bool
+    needs_safety_warning: bool
+    has_safety_warning: bool
+    issues: list[str] = Field(max_length=5)
+
+
+class TriageResult(BaseModel):
+    in_scope: bool
+    intent: Intent
+    language: str          # ISO 639-1 code, e.g. "en", "es"
+    product: str | None
+    symptoms: list[str]    # symptom labels from the troubleshooting table
+    search_query: str      # the question as an English search query
 
 
 class DiagnosisCandidate(BaseModel):
     cause: str
     solution: str
-    likelihood: str  # "high" | "medium" | "low"
-    rationale: str
+    likelihood: str  # high | medium | low
     source_page: int
 
 
-class DiagnosisOutput(BaseModel):
-    """Diagnostician agent: ranked likely causes and checks, grounded in the manual."""
-
+class Diagnosis(BaseModel):
     matched_symptoms: list[str]
     candidates: list[DiagnosisCandidate]
-    recommended_first_check: str
 
 
-class DraftAnswerOutput(BaseModel):
-    """Writer agent: the answer shown to the technician."""
-
-    answer: str  # Markdown, in the technician's language, with [p. N] citations
-    cited_pages: list[int]
-
-
-class VerdictOutput(BaseModel):
-    """Verifier agent: is the draft grounded, complete and safe to send?"""
-
+class Verdict(BaseModel):
     approved: bool
-    issues: list[str]  # concrete problems the writer must fix; empty when approved
+    issues: list[str]
 
 
-# --------------------------------------------------------------------------- API response
+# --- API ---
+
+Mode = Literal[config.MODES]
+
+
+class AskRequest(BaseModel):
+    question: str = Field(min_length=3, max_length=2000)
+    mode: Mode  # qwen, llama, gemma, deepseek (LLM), auto (LLM triage and writer) or offline (no LLM)
 
 
 class Source(BaseModel):
-    doc_id: str
-    product: str
     page: int
     section: str
     snippet: str
@@ -132,16 +140,13 @@ class TraceStep(BaseModel):
 class AssistantResponse(BaseModel):
     question: str
     answer: str
-    language: str
     intent: Intent
+    language: str
     product: str | None
     verified: bool
     sources: list[Source]
-    diagnosis: DiagnosisOutput | None
+    diagnosis: Diagnosis | None
     verification_issues: list[str]
     trace: list[TraceStep]
-    llm_mode: str
-
-
-class AskRequest(BaseModel):
-    question: str = Field(min_length=3, max_length=2000)
+    mode: str          # qwen, llama, gemma, deepseek, auto or offline
+    model: str | None  # Ollama model used, None in offline mode

@@ -1,103 +1,129 @@
 # Pool Technician Assistant
 
 A multi-agent GenAI application that answers pool technicians' technical questions about
-Fluidra products, grounded in the official product manuals. Built for the Fluidra GenAI
-Engineer technical assessment, using the AstralPool **Victoria Plus Silent** pump manual
-as the knowledge source.
+Fluidra products, grounded in the official product manuals. The knowledge source is the
+**ASTRAL Pool** pump manual provided with the assessment.
 
-- **User-triggered**: a technician submits a question through the REST API or the CLI.
-- **Multi-agent**: five agents (Triage, Retriever, Diagnostician, Writer, Verifier) with
-  separate responsibilities, connected by an explicit orchestrator.
-- **Grounded and safe**: every statement cites a manual page, a verifier checks the
-  answer against the evidence, and electrical work always comes with the manual's
-  disconnect-power warning.
-- **Runs without paid services**: with no API key it runs in a deterministic offline mode
-  (as the brief allows). With a key, every agent uses Claude.
+- **User-triggered**: the technician sends a question through a REST API or a CLI.
+- **Multi-agent**: five agents (1 Triage, 2 Retriever, 3 Diagnostician, 4 Writer, 5 Verifier),
+  each with one responsibility, run in a fixed order by an orchestrator.
+- **Six modes, always chosen by the user**:
+  - `qwen`, `llama`, `gemma`, `deepseek`: free LLMs run locally by [Ollama](https://ollama.com).
+    Every agent makes its decisions with that model. No paid services or API keys.
+  - `auto`: the LLM (`qwen`) only where language understanding matters, triage and writer.
+    Retriever, diagnostician and verifier use search and fixed rules. Two LLM calls per
+    question instead of five, and the citation and safety checks are rules a model can't skip.
+  - `offline`: every agent uses word matching and fixed rules, with no LLM.
 
-Design and production deployment: **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
+  There is no default and no fallback: if an LLM call fails, the question fails with an error.
+- **Grounded**: every statement cites a manual page, and a verifier checks the answer before
+  it is returned.
+
+Design decisions, limitations and the production deployment plan: **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
 
 ## How it works
 
 ```
-question → Triage ──(out of scope)──► polite refusal
-             │
-         Retriever  (BM25 candidates → LLM selects evidence)
-             │
-             ├─(troubleshooting)─► Diagnostician  (symptoms → ranked causes from the manual's matrix)
-             │                          │
-           Writer ◄─────────────────────┘   answer in the technician's language, [p. N] citations
-             │  ▲
-          Verifier  policy checks + grounding review; a rejection sends issues back to the writer
-             │
-          answer + sources + diagnosis + verification status + per-agent trace
+question → 1 Triage ──(out of scope)──► refusal
+              │
+           2 Retriever                    picks the manual passages that answer the question
+              │
+              ├─(troubleshooting)─► 3 Diagnostician   ranked causes from the manual's troubleshooting table
+              │                          │
+           4 Writer ◄────────────────────┘           answer in the technician's language, with [p. N] citations
+              │  ▲
+           5 Verifier                                citations, grounding and safety; a rejected answer is rewritten once
+              │
+           answer + sources + diagnosis + trace
 ```
 
-## Quick start
+| Agent | LLM modes | `auto` mode | `offline` mode |
+|---|---|---|---|
+| 1 Triage | The LLM decides scope, intent, language, product and symptoms, and writes an English search query | LLM | Keyword lists, and the `keywords` in `data/curated/` for the symptoms |
+| 2 Retriever | The LLM reads the list of manual passages and picks the relevant ones | offline | BM25 word search with the question, the search query and the symptom labels |
+| 3 Diagnostician | The LLM picks and ranks rows of the troubleshooting table | offline | Rows that share the matched symptoms |
+| 4 Writer | The LLM writes the answer and adds the safety warning when needed | LLM | Fixed templates; the safety warning is added when electrical words appear |
+| 5 Verifier | The LLM checks citations, grounding and the safety warning | offline | Fixed rules: citations present, cited pages in the evidence, safety warning present |
 
-Requires Python 3.11+.
+In `auto` mode the offline agents work from the LLM triage: its symptoms use the manual's
+wording and its search query is in English, so paraphrases and other languages still reach
+the right passages and table rows. A rejected answer is rewritten by the LLM writer with the
+rules' issues. What `auto` doesn't check is whether each statement is backed by the evidence
+(the LLM verifier's `supported` check); it only checks that the cited pages are real.
+
+In the LLM modes, code only drops what isn't in the manual: made-up symptom, passage or row
+numbers are ignored, and causes and solutions are always copied from the table.
+
+## Setup
+
+Requires Python 3.11+, and [Ollama](https://ollama.com/download) for the LLM modes.
 
 ```bash
+# 1. The models you want to use
+ollama pull qwen2.5:3b
+ollama pull llama3.2:3b
+ollama pull gemma3:4b
+ollama pull deepseek-v2:16b
+
+# 2. Python environment
 python -m venv .venv
 # Windows: .venv\Scripts\Activate.ps1    macOS/Linux: source .venv/bin/activate
 pip install -e ".[dev]"
 
-python scripts/ingest.py          # build the index (also built automatically on first run)
+# 3. Build the index from the PDF (also done automatically on first run)
+python scripts/ingest.py
 ```
 
-### Choosing the LLM mode
+| Mode | Ollama model | Size | Notes |
+|---|---|---|---|
+| `qwen` | `qwen2.5:3b` | 1.9 GB | Alibaba. Fast, reliable JSON. |
+| `llama` | `llama3.2:3b` | 2.0 GB | Meta. |
+| `gemma` | `gemma3:4b` | 3.3 GB | Google. |
+| `deepseek` | `deepseek-v2:16b` | 8.9 GB | DeepSeek. Mixture of experts: uses ~2.4B parameters per token, so it runs about as fast as the others on CPU, but needs ~10 GB of RAM. |
+| `auto` | `qwen2.5:3b` | 1.9 GB | The LLM for triage and writer only (`AUTO_MODEL` in config.py). |
+| `offline` | none | — | No Ollama needed. Answers in milliseconds, English templates only. |
 
-| `POOL_ASSISTANT_LLM` | Behaviour |
-|---|---|
-| `auto` (default) | Claude if `ANTHROPIC_API_KEY` is set, otherwise offline |
-| `claude` | Always Claude (`POOL_ASSISTANT_MODEL`, default `claude-opus-5-5`) |
-| `offline` | No LLM calls. Each agent uses its deterministic fallback |
+To use a different size (e.g. `llama3.1:8b`), change its tag in `MODELS` in
+[config.py](src/pool_assistant/config.py). Reasoning models such as `deepseek-r1` don't work
+well here: they reason before every reply, which takes minutes on CPU and uses up the token
+limit before the JSON is written.
+
+## Usage
+
+**CLI** (`--mode` is required)
 
 ```bash
-export ANTHROPIC_API_KEY=sk-ant-...      # optional
+pool-assistant "Water barely comes out of my pump and I think there's air getting in" --mode llama
+pool-assistant "La bomba no arranca" --mode deepseek --trace
+pool-assistant "Mi bomba hace ruido" --mode auto
+pool-assistant "The pump makes a noise" --mode offline
 ```
 
-### CLI
+`--trace` shows the mode and model, what each agent did and how long it took. On a laptop CPU
+an LLM question takes about 1–4 minutes: five LLM calls, seven with a rewrite. In `auto` mode
+it is two calls, three with a rewrite. The first
+question after starting is the slowest, because Ollama loads the model and reads the list of
+passages for the first time.
 
-```bash
-pool-assistant "The pump makes a noise but will not start" --trace
-pool-assistant --mode offline "How often should I replace the mechanical seal?"
-pool-assistant --json "Mi bomba hace ruido, ¿qué hago?"
-pool-assistant                           # interactive session
-```
+If Ollama isn't running or the model isn't downloaded, the CLI stops with an error (and the
+`ollama pull` command to run).
 
-Example output (offline mode):
-
-```
-**Reported symptom(s):** The pump is not primed; The pump only releases a small flow of water.
-
-**Likely causes, most likely first:**
-1. **Air entering the suction pipe** (high) - Check the condition of connections and seals on the suction pipe [p. 13]
-2. **Motor turning in wrong direction** (high) - Invert 2 power phases [p. 13]
-3. **Wrong voltage** (high) - Check the voltage on the rating plate and that of the mains [p. 13]
-...
-**Safety:** before any electrical or mechanical work, disconnect the pump from the mains, ... [p. 8]
-
-Sources: Victoria Plus Silent manual (p. 9, p. 13)
-[troubleshooting | en | verified | offline]
-
-  triage              2 ms  intent=troubleshooting lang=en product=Victoria Plus Silent in_scope=True [offline]
-  retriever           5 ms  5 passages from pages [9, 13] [offline]
-  diagnostician       1 ms  6 candidate causes [offline]
-  writer              2 ms  draft 1, cites pages [5, 8, 13] [offline]
-  verifier            0 ms  approved [offline]
-```
-
-### REST API
+**REST API**
 
 ```bash
 uvicorn pool_assistant.api:app --reload
-curl -X POST localhost:8000/ask -H "Content-Type: application/json" \
-     -d '{"question": "The motor has stopped and the thermal protection trips"}'
 ```
 
-Interactive docs are at `http://localhost:8000/docs`. The response contains `answer`,
-`intent`, `language`, `product`, `verified`, `sources` (page, section, snippet),
-`diagnosis`, `verification_issues` and the per-agent `trace`.
+Open http://localhost:8000 for the interactive docs, or call it directly. `mode` is required:
+
+```bash
+curl -X POST localhost:8000/ask -H "Content-Type: application/json" \
+     -d '{"question": "The motor has stopped and the thermal protection trips", "mode": "gemma"}'
+```
+
+The response includes `answer`, `intent`, `language`, `product`, `verified`, `sources`,
+`diagnosis`, `verification_issues`, `trace`, `mode` and `model`. If the LLM is not available
+or a call fails, the API answers 503 with the reason.
 
 ## Tests
 
@@ -105,34 +131,26 @@ Interactive docs are at `http://localhost:8000/docs`. The response contains `ans
 pytest
 ```
 
-The tests need no API key. They cover ingestion and retrieval, the offline pipeline, the
-REST API, and the LLM path with a scripted fake LLM. That includes the verifier → writer
-revision loop, the "unverified" flag, fallback when an LLM call fails, dropping
-hallucinated product names, and the Claude adapter's request and refusal handling.
+The tests run offline mode, and the LLM and auto modes with a fake model, so they take a few seconds and don't need Ollama.
 
 ## Project layout
 
 ```
 Fluidra_GenAI_Engineer_Technical_Assessment_v1/
-  user_manual.pdf                source manual (PDFs named in the manifest are read from here)
+  user_manual.pdf                the source manual
 data/
-  manuals/manifest.json          product metadata + which pages hold which language
-  curated/*_troubleshooting.json troubleshooting matrix transcribed from the manual (p. 13)
-  index/chunks.jsonl             generated chunk index
+  manuals/manifest.json          product metadata and which pages are in English
+  curated/*_troubleshooting.json troubleshooting table transcribed from the manual (p. 13);
+                                 the symptom keywords are only used in offline mode
 src/pool_assistant/
-  orchestrator.py                agent graph, revision loop, trace
-  agents/                        triage, retriever, diagnostician, writer, verifier (+ shared helpers)
-  knowledge/                     PDF ingestion/chunking, BM25 knowledge base
-  llm.py                         Claude adapter (structured outputs) and mode selection
-  schemas.py                     typed contracts between agents and the API response
+  agents/                        the five agents, numbered in run order:
+    1_triage.py 2_retriever.py 3_diagnostician.py 4_writer.py 5_verifier.py
+    common.py                    shared helpers (keyword matching, citations, safety text)
+  knowledge/                     PDF chunking, and BM25 search for offline and auto modes
+  llm.py                         Ollama client
+  orchestrator.py                runs the agents for a question
+  schemas.py                     data passed between agents and returned by the API
   api.py, cli.py                 entry points
-scripts/ingest.py                rebuild the index
-tests/                           offline, scripted-LLM and API tests
-docs/ARCHITECTURE.md             design rationale and production deployment plan
+scripts/ingest.py                rebuilds the index
+docs/ARCHITECTURE.md             design, limitations and deployment
 ```
-
-## Adding a manual
-
-1. Put the PDF in `Fluidra_GenAI_Engineer_Technical_Assessment_v1/` (or set `POOL_ASSISTANT_PDF_DIR`) and add an entry to `data/manuals/manifest.json` (file name, product and language page ranges).
-2. Optionally add a curated troubleshooting matrix in `data/curated/`.
-3. Run `python scripts/ingest.py`.

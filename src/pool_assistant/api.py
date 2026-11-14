@@ -1,45 +1,38 @@
-"""REST API. Run with: uvicorn pool_assistant.api:app --reload"""
+"""REST API. Run with: uvicorn pool_assistant.api:app --reload
 
-from __future__ import annotations
+Each request names its mode: {"question": "...", "mode": "llama"}
+(qwen, llama, gemma, deepseek; auto for LLM triage and writer with rule-based other agents;
+or offline for word matching with no LLM)."""
 
-from contextlib import asynccontextmanager
+from functools import cache
 
-from fastapi import FastAPI
-from fastapi.concurrency import run_in_threadpool
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import RedirectResponse
 
+from pool_assistant.knowledge import KnowledgeBase, load_knowledge_base
+from pool_assistant.llm import LLMError
 from pool_assistant.orchestrator import Orchestrator, build_orchestrator
 from pool_assistant.schemas import AskRequest, AssistantResponse
 
-_state: dict[str, Orchestrator] = {}
+app = FastAPI(title="Pool Technician Assistant")
+assistants: dict[str, Orchestrator] = {}  # one per mode, built the first time it is asked for
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    _state.setdefault("orchestrator", build_orchestrator())
-    yield
-
-
-app = FastAPI(
-    title="Pool Technician Assistant",
-    description="Multi-agent assistant that answers technical questions from product manuals.",
-    version="0.1.0",
-    lifespan=lifespan,
-)
+@cache
+def knowledge_base() -> KnowledgeBase:
+    return load_knowledge_base()
 
 
 @app.get("/", include_in_schema=False)
-def root() -> RedirectResponse:
-    return RedirectResponse(url="/docs")
-
-
-@app.get("/health")
-def health() -> dict:
-    orch = _state["orchestrator"]
-    return {"status": "ok", "llm_mode": orch.mode, "chunks": len(orch.kb.chunks), "products": orch.kb.products}
+def root():
+    return RedirectResponse("/docs")
 
 
 @app.post("/ask", response_model=AssistantResponse)
-async def ask(request: AskRequest) -> AssistantResponse:
-    # The agent pipeline is synchronous (blocking SDK calls); keep the event loop free.
-    return await run_in_threadpool(_state["orchestrator"].ask, request.question)
+def ask(request: AskRequest):
+    try:
+        if request.mode not in assistants:
+            assistants[request.mode] = build_orchestrator(request.mode, knowledge_base())
+        return assistants[request.mode].ask(request.question)
+    except LLMError as e:  # Ollama not running, model not downloaded, or a call failed
+        raise HTTPException(status_code=503, detail=str(e)) from e

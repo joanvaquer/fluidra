@@ -1,12 +1,9 @@
-"""Turn the manuals listed in the manifest into page-cited chunks.
+"""Turn the manuals listed in the manifest into chunks, one or more per page.
 
-The manual is multilingual (9 languages, ~10 pages each). The manifest declares which
-page range holds which language, so only those ranges are indexed and every chunk keeps
-its page number for citations. Chunks never span pages; the current section heading is
-carried across pages so a chunk on page 12 still knows it belongs to "5. MAINTENANCE".
+The manual has the same content in 9 languages, so only the page ranges declared in the
+manifest are indexed. Chunks never cross a page boundary, so every chunk can be cited
+with an exact page number.
 """
-
-from __future__ import annotations
 
 import json
 import re
@@ -17,14 +14,9 @@ from pypdf import PdfReader
 from pool_assistant import config
 from pool_assistant.schemas import Chunk, TroubleshootingMatrix
 
-# "3. INSTALLATION AND ASSEMBLY", "7. TROUBLESHOOTING"
-SECTION_RE = re.compile(r"^\s*(\d{1,2})\s?\.\s+([A-Z][A-Z ,\-/']{3,})\s*$")
-# "PIPING", "WARNINGS DURING START-UP", "ELECTRICAL INSTALLATION"
-SUBHEADING_RE = re.compile(r"^\s*([A-Z][A-Z ,\-/']{3,})\s*$")
-# Running headers/footers and language tabs that add noise to retrieval.
-NOISE_RE = re.compile(
-    r"^\s*(\d{1,3}|ENGLISH|Installation and general maintenance manual - POOL PUMPS\s*\d*)\s*$"
-)
+SECTION_RE = re.compile(r"^\s*(\d{1,2})\s?\.\s+([A-Z][A-Z ,\-/']{3,})\s*$")  # "7. TROUBLESHOOTING"
+SUBHEADING_RE = re.compile(r"^\s*([A-Z][A-Z ,\-/']{3,})\s*$")               # "PIPING"
+NOISE_RE = re.compile(r"^\s*(\d{1,3}|ENGLISH|Installation and general maintenance manual - POOL PUMPS\s*\d*)\s*$")
 MAX_CHUNK_CHARS = 1200
 
 
@@ -32,125 +24,102 @@ def load_manifest(path: Path = config.MANIFEST_PATH) -> list[dict]:
     return json.loads(path.read_text(encoding="utf-8"))["manuals"]
 
 
-def _clean_lines(text: str) -> list[str]:
-    lines = []
-    for raw in text.splitlines():
-        line = raw.replace("’", "'").replace(" ", " ").rstrip()
-        if not line.strip() or NOISE_RE.match(line):
-            continue
-        lines.append(line)
-    return lines
+def load_troubleshooting(manual: dict) -> TroubleshootingMatrix | None:
+    if not manual.get("troubleshooting"):
+        return None
+    path = config.CURATED_DIR / manual["troubleshooting"]
+    return TroubleshootingMatrix.model_validate_json(path.read_text(encoding="utf-8"))
 
 
-def _split_blocks(
-    lines: list[str], section: str, subheading: str
-) -> tuple[list[tuple[str, str]], str, str]:
-    """Group a page's lines into (section, text) blocks at headings and size limits.
+def split_page(lines: list[str], section: str, subheading: str):
+    """Split a page into (section title, text) blocks.
 
-    The section and sub-heading in force at the end of the page are returned so the
-    next page continues under them.
+    The current section and subheading are returned so the next page continues under them.
     """
-    blocks: list[tuple[str, str]] = []
-    current: list[str] = []
+    blocks, current = [], []
 
-    def flush() -> None:
+    def flush():
         if current:
-            label = f"{section} > {subheading}" if subheading else section
-            body = "\n".join(current).strip()
-            if body:
-                blocks.append((label, body))
+            title = f"{section} > {subheading}" if subheading else section
+            blocks.append((title, "\n".join(current)))
             current.clear()
 
     for line in lines:
         if m := SECTION_RE.match(line):
             flush()
-            section = f"{m.group(1)}. {m.group(2).strip().title()}"
-            subheading = ""
-            continue
-        if SUBHEADING_RE.match(line) and len(line.split()) <= 6:
+            section, subheading = f"{m.group(1)}. {m.group(2).strip().title()}", ""
+        elif SUBHEADING_RE.match(line) and len(line.split()) <= 6:
             flush()
             subheading = line.strip().title()
-            continue
-        if sum(len(x) for x in current) + len(line) > MAX_CHUNK_CHARS:
-            flush()
-        current.append(line.strip())
+        else:
+            if sum(len(x) for x in current) + len(line) > MAX_CHUNK_CHARS:
+                flush()
+            current.append(line.strip())
     flush()
     return blocks, section, subheading
 
 
-def chunk_manual(manual: dict, pdf_dir: Path = config.PDF_DIR) -> list[Chunk]:
-    reader = PdfReader(pdf_dir / manual["file"])
-    chunks: list[Chunk] = []
-    for lang_section in manual["sections"]:
+def chunk_manual(manual: dict) -> list[Chunk]:
+    reader = PdfReader(config.PDF_DIR / manual["file"])
+    chunks = []
+    for lang in manual["sections"]:
         section, subheading = "Safety Information", ""
-        for page_no in range(lang_section["first_page"], lang_section["last_page"] + 1):
-            text = reader.pages[page_no - 1].extract_text() or ""
-            blocks, section, subheading = _split_blocks(_clean_lines(text), section, subheading)
-            for i, (label, body) in enumerate(blocks):
-                chunks.append(
-                    Chunk(
-                        chunk_id=f"{manual['doc_id']}:{lang_section['language']}:p{page_no}:{i}",
-                        doc_id=manual["doc_id"],
-                        product=manual["product"],
-                        language=lang_section["language"],
-                        page=page_no,
-                        section=label,
-                        text=body,
-                    )
-                )
+        for page in range(lang["first_page"], lang["last_page"] + 1):
+            text = reader.pages[page - 1].extract_text() or ""
+            lines = [ln.replace("’", "'") for ln in text.splitlines() if ln.strip() and not NOISE_RE.match(ln)]
+            blocks, section, subheading = split_page(lines, section, subheading)
+            for i, (title, body) in enumerate(blocks):
+                chunks.append(Chunk(
+                    chunk_id=f"{manual['doc_id']}:{lang['language']}:p{page}:{i}",
+                    doc_id=manual["doc_id"],
+                    product=manual["product"],
+                    language=lang["language"],
+                    page=page,
+                    section=title,
+                    text=body,
+                ))
     return chunks
-
-
-def load_troubleshooting(manual: dict, curated_dir: Path = config.CURATED_DIR) -> TroubleshootingMatrix | None:
-    name = manual.get("troubleshooting")
-    if not name:
-        return None
-    return TroubleshootingMatrix.model_validate_json((curated_dir / name).read_text(encoding="utf-8"))
 
 
 def matrix_to_chunks(matrix: TroubleshootingMatrix) -> list[Chunk]:
-    """Index each troubleshooting row as its own chunk, since the PDF table extracts badly."""
+    """One chunk per troubleshooting row (the PDF table doesn't extract cleanly)."""
     labels = {s.id: s.label for s in matrix.symptoms}
-    chunks = []
-    for i, row in enumerate(matrix.rows):
-        symptoms = "; ".join(labels[s] for s in row.symptoms)
-        chunks.append(
-            Chunk(
-                chunk_id=f"{matrix.doc_id}:en:troubleshooting:{i}",
-                doc_id=matrix.doc_id,
-                product=matrix.product,
-                language="en",
-                page=matrix.source_page,
-                section="7. Troubleshooting",
-                text=f"Symptoms: {symptoms}.\nCause: {row.cause}.\nSolution: {row.solution}.",
-            )
+    return [
+        Chunk(
+            chunk_id=f"{matrix.doc_id}:en:troubleshooting:{i}",
+            doc_id=matrix.doc_id,
+            product=matrix.product,
+            language="en",
+            page=matrix.source_page,
+            section="7. Troubleshooting",
+            text=f"Symptoms: {'; '.join(labels[s] for s in row.symptoms)}.\n"
+                 f"Cause: {row.cause}.\nSolution: {row.solution}.",
         )
-    return chunks
+        for i, row in enumerate(matrix.rows)
+    ]
 
 
-def build_chunks(manifest_path: Path = config.MANIFEST_PATH) -> list[Chunk]:
-    chunks: list[Chunk] = []
-    for manual in load_manifest(manifest_path):
-        page_chunks = chunk_manual(manual)
-        matrix = load_troubleshooting(manual, manifest_path.parent.parent / "curated")
+def build_chunks() -> list[Chunk]:
+    chunks = []
+    for manual in load_manifest():
+        manual_chunks = chunk_manual(manual)
+        matrix = load_troubleshooting(manual)
         if matrix:
-            # The curated rows replace the garbled table text extracted from that page.
-            page_chunks = [
-                c for c in page_chunks
+            # replace the garbled table text with the curated rows
+            manual_chunks = [
+                c for c in manual_chunks
                 if not (c.page == matrix.source_page and c.section.startswith("7."))
             ]
-            page_chunks += matrix_to_chunks(matrix)
-        chunks += page_chunks
+            manual_chunks += matrix_to_chunks(matrix)
+        chunks += manual_chunks
     return chunks
 
 
-def write_index(chunks: list[Chunk], path: Path = config.INDEX_PATH) -> None:
+def write_index(chunks: list[Chunk], path: Path = config.INDEX_PATH):
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8") as f:
-        for chunk in chunks:
-            f.write(chunk.model_dump_json() + "\n")
+    path.write_text("".join(c.model_dump_json() + "\n" for c in chunks), encoding="utf-8")
 
 
 def read_index(path: Path = config.INDEX_PATH) -> list[Chunk]:
-    with path.open(encoding="utf-8") as f:
-        return [Chunk.model_validate_json(line) for line in f if line.strip()]
+    lines = path.read_text(encoding="utf-8").splitlines()
+    return [Chunk.model_validate_json(line) for line in lines if line.strip()]
