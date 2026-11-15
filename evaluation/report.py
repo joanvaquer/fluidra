@@ -46,6 +46,7 @@ CHECKS = {
     "safety": "Disconnect-power warning present when electrical work is involved",
     "facts": "The answer contains the key fact",
     "no_invented_years": "No invented warranty period (the manual gives none)",
+    "says_not_in_manual": "Says the manual doesn't give the warranty period, if it answers",
 }
 
 # words that are frequent in one language and rare in the others, to tell which one an answer uses
@@ -75,6 +76,14 @@ def answer_language(text: str) -> str:
 INVENTED_YEARS = re.compile(
     r"\b(\d+|one|two|three|five|ten)[\s-]*(years?|yr)\b.{0,40}warrant|warrant.{0,60}\b(\d+|one|two|three|five|ten)[\s-]*(years?|yr)\b",
     re.IGNORECASE | re.DOTALL,
+)
+# An answer that says the manual doesn't have the information, e.g. "I could not find this in
+# the manuals" or "The manual does not specify the warranty period".
+SAYS_NOT_IN_MANUAL = re.compile(
+    r"could not find|couldn't find|(does not|doesn't|do not|don't) (specify|mention|state|say|give|"
+    r"include|provide|contain|cover)|not (mentioned|specified|stated|given|covered|included|found) in|"
+    r"no information",
+    re.IGNORECASE,
 )
 
 
@@ -126,6 +135,8 @@ def score(q: dict, record: dict) -> dict[str, bool | None]:
         result["facts"] = any(f in answer.lower() for f in q["facts"])
     if q.get("trap") == "no_invented_years":
         result["no_invented_years"] = not INVENTED_YEARS.search(answer)
+        # not inventing is not enough: pasting passages that don't answer it can mislead too
+        result["says_not_in_manual"] = bool(SAYS_NOT_IN_MANUAL.search(answer))
     return result
 
 

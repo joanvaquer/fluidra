@@ -192,158 +192,164 @@
 > - **3. Installation And Assembly > Electrical Installation:** ... - Use a rigid cable to connect the pump to the mains. If you use a flexible cable to connect it to the mains, it must have cable lugs to connect it to the terminals of the pump's motor. [p. 9]
 > - **3. Installation And Assembly > Electrical Installation:** - Adjust the value of the ground fault circuit interrupter in line with pump intensity. - Before connecting the motor, check the type of fuse required. - Check the layout and connection of the earthing cable in the unit. - Respect the electrical installation and connection instructions. Failure to do so may lead to the pump's manufacturer declining all liability and rendering the warranty null and void. ... [p. 10]
 
-## q04 (fr, clean): Ma pompe ne démarre pas du tout, que dois-je vérifier ?
+## q04 (es, no accents or punctuation): mi bomba no arranca que tengo que revisar
 
 *Expected:* Will not start: wrong voltage is the only row. Checking voltage is electrical work.
 
-### `qwen` · 154 s · failed: top_cause, safety
+### `qwen` · 322 s · failed: cause_found, top_cause, facts
 
-*intent* troubleshooting · *language* fr · *verified* True · *causes* Filter cap badly sealed; Motor turning in wrong direction; Wrong voltage
+*intent* troubleshooting · *language* es · *verified* True · *causes* Motor turning in wrong direction; The thermal protection trips
 
-> Ma pompe ne démarre pas du tout, que dois-je vérifier ?
+> 1. La bomba no arranca. Las causas posibles son:
+>    a) La protección térmica ha tripado (mediana) -> Conecte correctamente las cables a las cajas de conexión [p. 13].
+>    b) La bomba está girando en el sentido incorrecto (alta) -> Invertir las dos fases de alimentación [p. 13].
 > 
-> 1. Vérifiez la capteur de filtre (cause 1) : Nettoyez la capteur de filtre et vérifiez la condition du joint de caoutchouc.
-> 2. Vérifiez la direction du moteur (cause 2) : Inversez les deux phases de courant.
-> 3. Vérifiez la tension (cause 3) : Vérifiez la tension indiquée sur la plaque de référence et celle des lignes de courant.
+> Según la información del manual, la primera causa es la protección térmica que ha tripado. Para solucionar esto, se debe conectar correctamente las cables a las cajas de conexión. Esto se puede hacer siguiendo las instrucciones en la página 13 del manual.
 > 
-> [p. 13] [p. 13] [p. 13] [p. 13]
-
-### `llama` · 168 s · failed: intent, cause_found, top_cause
-
-*intent* start_up · *language* fr · *verified* True
-
-> Voici les étapes à suivre :
+> Después de realizar la conexión correcta, si la bomba sigue sin arrancar, la segunda causa sería que la bomba está girando en el sentido incorrecto. Para solucionar esto, se debe invertir las dos fases de alimentación. Esto también se puede hacer siguiendo las instrucciones en la página 13 del manual.
 > 
-> 1. Vérifiez la tension électrique sur la plaque de spécifications et sur le réseau électrique pour s'assurer qu'elle correspond à la tension indiquée [p. 13].
-> 2. Vérifiez que le moteur n'est pas bloqué [p. 13].
-> 3. Vérifiez les connexions du panneau électrique pour éviter les arcs électriques [p. 13].
-> 4. Vérifiez que les câbles sont connectés correctement aux panneaux électriques [p. 13].
+> **Safety:** antes de cualquier trabajo eléctrico o mecánico, desconecte la bomba de la red, bloquee todos los dispositivos de arranque, verifique que no haya voltaje y espere hasta que el impulsor pare completamente [p. 8]. Los trabajos eléctricos deben ser realizados por personal calificado [p. 5].
+
+### `llama` · 234 s · failed: intent, cause_found, top_cause, page_cited
+
+*intent* start_up · *language* es · *verified* True
+
+> Aquí te presento los posibles problemas y soluciones para tu bomba:
 > 
-> **Safety:** avant tout travail électrique ou mécanique, déconnectez le pompier de la prise électrique, bloquez tous les dispositifs de démarrage, vérifiez qu'il n'y a pas de tension et attendez que l'impeller s'arrête complètement [p. 8]. Le travail électrique doit être effectué par des personnes qualifiées [p. 5].
-
-### `gemma` · 180 s
-
-*intent* troubleshooting · *language* fr · *verified* True · *causes* Wrong voltage; Motor blocked; Pre-filter blocked
-
-> Voici les vérifications à effectuer :
+> 1. **Motor girando en la dirección equivocada**: Invierte 2 fases de energía.
+> 2. **Voltage incorrecta**: Verifica la tensión en la placa de especificaciones y la de la red.
+> 3. **Pre-filtro bloqueado**: Limpia el filtro.
+> 4. **Pérdida de carga en la instalación**: Asegúrate de que los componentes no estén causando pérdida de carga en la instalación.
 > 
-> 1.  Vérifiez la tension sur la plaque signalétique et celle du secteur [p. 13].
-> 2.  Retirez le moteur et contactez le service technique [p. 13].
-> 3.  Nettoyez le préfiltre [p. 13].
-> 4.  Vérifiez la tension incorrecte (tension trop élevée) [p. 13].
-> 5.  Vérifiez la direction de rotation du moteur [p. 13].
-> 6.  Vérifiez les connexions de la boite de jonction en raison d'un arc électrique [p. 13].
+> **Safety:** Antes de realizar cualquier trabajo eléctrico o mecánico, desconecta la bomba de la red, bloquea todos los dispositivos de arranque, verifica que no haya tensión y espera a que el impellor se detenga completamente [p. 8]. El trabajo eléctrico debe ser realizado por personal calificado [p. 5].
+
+### `gemma` · 224 s
+
+*intent* troubleshooting · *language* es · *verified* True · *causes* Wrong voltage; Pre-filter blocked; Motor blocked
+
+> Para solucionar el problema de que la bomba no arranca, siga estos pasos:
 > 
-> **Safety:** before any electrical or mechanical work, disconnect the pump from the mains, block all start-up devices, check there is no voltage and wait for the impeller to stop completely [p. 8]. Electrical work must be done by qualified personnel [p. 5].
-
-### `deepseek` · 151 s · failed: top_cause, safety
-
-*intent* troubleshooting · *language* fr · *verified* True · *causes* Filter cap badly sealed; Motor turning in wrong direction; Wrong voltage; Pre-filter blocked; Load loss in the installation; Pump incorrectly secured
-
-> 1. Vérifiez le voltage sur l'étiquette de résistance et celui de la prise électrique. Si le voltage n'est pas correct, ajustez-le en changeant l'ampoule ou en utilisant un adaptateur de voltage approprié [p. 13].
-> 2. Vérifiez si la pompe est correctement branchée et si la prise électrique n'est pas défectueuse. Assurez-vous que le voltage de la prise électrique correspond à celui indiqué sur l'étiquette de résistance de la pompe [p. 13].
-> 3. Si aucun des problèmes ci-dessus n'est le cas, il est possible que la pompe soit défectueuse. Contactez le service technique pour obtenir une assistance supplémentaire [p. 13].
-> 
-> **Safety:** Avant de procéder à des travaux électriques ou mécaniques sur l'équipement, déconnexionz la pompe de l'alimentation électrique, bloquez tous les dispositifs de démarrage, vérifiez qu'il n'y a pas de tension et attendez que l'arbre de la pompe s'arrête complètement. Travaillez électrique seulement par des personnes qualifiées [p. 8].
-
-### `auto` · 93 s
-
-*intent* troubleshooting · *language* fr · *verified* True · *causes* Wrong voltage
-
-> 1. Vérifiez la tension sur le plaque de référence et celle des lignes ménagères [p. 13].
-> 2. Assurez-vous que la tension des lignes ménagères est correcte (230 V pour un réseau 230 V, 400 V pour un réseau 400 V) [p. 10].
-> 3. Vérifiez que le câble de la prise est correctement connecté et que le RCD est en place et fonctionnel [p. 6].
-> 4. Assurez-vous que le tuyau de pompage est le plus court possible pour minimiser les pertes d'installation [p. 6].
-> 5. Vérifiez que le niveau d'eau dans le bassin est suffisamment bas pour que la pompe puisse se déclencher [p. 9].
-> 
-> **Safety:** avant toute intervention électrique ou mécanique, déconnectez la pompe du réseau électrique, bloquez tous les dispositifs de démarrage et attendez que l'impellent arrête complètement [p. 8]. Les travaux électriques doivent être réalisés par des professionnels qualifiés [p. 5].
-
-### `offline` · <0.1 s · failed: intent, answer_language, cause_found, top_cause, page_cited, facts
-
-*intent* general · *language* fr · *verified* True
-
-> From the ASTRAL Pool manual:
-> - **3. Installation And Assembly > Electrical Installation:** x 230 V network), use the protection with the highest indicated value. For the connection Υ (3 x 400 V network), use the protection with the lowest indicated value. •  Connect the lowest voltage at Δ and the highest at Υ for voltage intervals other than 230/400 V; 400/690 V. •  For AC, use a H07 RN-F3 type connection sleeve with a cable section that adapts to the power of the motor and the length of the cable. ... [p. 10]
-> - **1. General Safety Instructions:** ... pump's plate) with an earth connection, protected by a residual current device (RCD) with a rated residual operating current that does not exceed 30 mA. [p. 6]
-> - **3. Installation And Assembly > Electrical Installation:** ... already fitted with protection. •  For 230 V, use a H07 RN-F3 type connection sleeve with a cable section that adapts to the power of the motor and to the length of the cable. For pumps with o three-phase motor: •  Use a motor guard with magneto-thermal protection. •  Protect the pump against overloads with a cut-off switch for the motor. •  Adjust the thermal value according to the thermal protection table. For the connection Δ (3 [p. 10]
+> 1.  Verifique la tensión en la placa de calificación y la tensión de la red eléctrica. Esto podría ser un error de tensión (alta) [p. 13].
+> 2.  Limpie el filtro pre-filtro [p. 13].
+> 3.  Si la bomba no arranca, retire el motor y póngase en contacto con el servicio técnico [p. 13].
 > 
 > **Safety:** before any electrical or mechanical work, disconnect the pump from the mains, block all start-up devices, check there is no voltage and wait for the impeller to stop completely [p. 8]. Electrical work must be done by qualified personnel [p. 5].
 
-## q05 (it, no punctuation): il motore fa un ronzio ma non parte, cosa faccio
+### `deepseek` · 327 s · failed: page_cited, citations_valid
+
+*intent* troubleshooting · *language* es · *verified* True · *causes* Wrong voltage; Motor turning in wrong direction; Filter cap badly sealed
+
+> 1. Verifica el voltaje en la placa de calificación y el de la red eléctrica.
+> 2. Inverte 2 fases de potencia.
+> 3. Limpia el casquillo de la filtración y verifica la condición de la silicona.
+> 
+> Safety: Antes de cualquier trabajo eléctrico o mecánico, desconécte la bomba de la red eléctrica, bloqueie todos los dispositivos de arranque y verifique que no haya tensión antes de comenzar.
+> 
+> **Safety:** antes de cualquier trabajo eléctrico o mecánico, desconecte la bomba de la red eléctrica, bloque todo el dispositivo de arranque, verifique que no haya tensión y espere a que el impulsor se detenga completamente antes de comenzar.
+
+### `auto` · 119 s
+
+*intent* troubleshooting · *language* es · *verified* True · *causes* Wrong voltage
+
+> Las causas posibles son las siguientes:
+> 
+> 1. La tensión eléctrica está alta (wrong voltage) -> Compruebe la tensión en la etiqueta de calibración y que de la red de alimentación [p. 13].
+> 
+> Después de identificar la causa, siga estos pasos:
+> 
+> 1. Compruebe la tensión en la etiqueta de calibración y que de la red de alimentación [p. 13].
+> 2. Si la tensión está correcta, revise la instalación eléctrica y asegúrese de que el motor está correctamente conectado y protegido contra contactos eléctricos y mecánicos [p. 7].
+> 3. Si el motor está bloqueado, retire el motor y contacte al servicio técnico [p. 13].
+> 
+> **Safety:** antes de cualquier trabajo eléctrico o mecánico, desconecte la bomba de la red, bloquee todos los dispositivos de arranque y espere hasta que el impulsor pare completamente [p. 8]. Los trabajos eléctricos deben hacerse por personal calificado [p. 5].
+
+### `offline` · <0.1 s · failed: answer_language, facts
+
+*intent* troubleshooting · *language* es · *verified* True · *causes* Wrong voltage
+
+> **Reported symptoms:** The pump will not start.
+> 
+> **Likely causes:**
+> 1. **Wrong voltage** (high): Check the voltage on the rating plate and that of the mains [p. 13]
+> 
+> **Check first:** Check the voltage on the rating plate and that of the mains.
+> 
+> **Safety:** before any electrical or mechanical work, disconnect the pump from the mains, block all start-up devices, check there is no voltage and wait for the impeller to stop completely [p. 8]. Electrical work must be done by qualified personnel [p. 5].
+
+## q05 (en, clean): The motor hums but the pump won't start. What should I do?
 
 *Expected:* Hums but won't start: motor blocked, remove the motor and call the technical service.
 
-### `qwen` · 149 s · failed: cause_found, top_cause
+### `qwen` · 111 s · failed: top_cause
 
-*intent* troubleshooting · *language* it · *verified* True · *causes* Pump incorrectly secured
+*intent* troubleshooting · *language* en · *verified* True · *causes* Pump incorrectly secured; Motor blocked
 
-> Il motore fa un ronzio ma non parte. Ecco i possibili motivi e soluzioni:
+> The motor hums but the pump won't start. The likely causes are:
+> 1. Motor blocked (high) -> Remove the motor and contact the technical service [p. 13]
 > 
-> 1. Il motore è bloccato.
->    - Soluzione: Rimuovere il motore e contattare il servizio tecnico [p. 13].
+> Fix these problems:
+> 1. Ensure the power is disconnected before attempting to remove the motor. [p. 8]
+
+### `llama` · 151 s
+
+*intent* troubleshooting · *language* en · *verified* True · *causes* Motor blocked; Increased temperature in the terminal box due to electric arc; The thermal protection trips; Incorrect junction box connections
+
+> Here are the likely causes and fixes:
 > 
-> **Safety:** prima di qualsiasi lavoro elettrico o meccanico, disconnettere il motore dalla rete, bloccare tutti i dispositivi di avvio, verificare che non ci sia corrente e aspettare che l'impellente si ferma completamente [p. 8]. Il lavoro elettrico deve essere fatto da persone qualificate [p. 5].
-
-### `llama` · 256 s · failed: cause_found, top_cause, page_cited
-
-*intent* troubleshooting · *language* it · *verified* True · *causes* The thermal protection trips; Incorrect junction box connections; Increased temperature in the terminal box due to electric arc
-
-> Per risolvere il problema del motore che fa un ronzio ma non parte, segui questi passaggi:
+> 1. **Incorrect junction box connections (medium)**: 
+>    - Check the junction box connections.
+>    - Tighten the cable correctly to the junction box / Adapt the size of the cable connection to the junction box [p. 13]
 > 
-> 1. Verifica che il motore sia bloccato e, se sì, rimuovilo e contatta il servizio tecnico.
-> 2. Controlla se ci sono problemi di connessione nei box di collegamento e, se sì, controlla se ci sono arci elettrici e, se sì, controlla nuovamente le connessioni dei box di collegamento.
-> 3. Se il problema persiste, controlla le connessioni dei box di collegamento e, se necessario, adatta la dimensione della connessione del cavo al box di collegamento.
+> 2. **Increased temperature in the terminal box due to electric arc (medium)**: 
+>    - Check the junction box connections [p. 13]
 > 
-> **Nota:** prima di eseguire qualsiasi lavoro elettrico o meccanico, assicurati di disconnettere il motore dalla rete elettrica e di bloccare tutti i dispositivi di avvio. Controlla che non ci sia tensione e attendi che l'impellino si fermi completamente. Lavori elettrici devono essere eseguiti da personale qualificato [p. 5].
-
-### `gemma` · 168 s
-
-*intent* troubleshooting · *language* it · *verified* True · *causes* Motor blocked; Motor turning in wrong direction; Wrong voltage
-
-> Ecco cosa fare:
+> 3. **Motor blocked (low)**: 
+>    - Remove the motor and contact the technical service [p. 13]
 > 
-> 1.  Il motore è bloccato (a causa di un'alta pressione) [p. 13]. Rimuovere il motore e contattare il servizio tecnico [p. 13].
-> 2.  Il motore gira nella direzione sbagliata [p. 13]. Invertire le due fasi di alimentazione [p. 13].
-> 3.  La tensione è troppo bassa [p. 13]. Verificare la tensione sulla targa e quella della rete elettrica [p. 13].
+> 4. **The thermal protection trips (high)**: 
+>    - Connect the cables correctly to the junction boxes [p. 13]
 > 
-> **Safety:** prima di qualsiasi intervento elettrico o meccanico, scollegare la pompa dalla rete, bloccare tutti i dispositivi di avviamento, verificare l'assenza di tensione e attendere lo spegnimento completo dell'elica [p. 8]. Lavori elettrici devono essere eseguiti da personale qualificato [p. 5].
+> **Safety:** before any electrical or mechanical work, disconnect the pump from the mains, block all start-up devices, check there is no voltage and wait for the impeller to stop completely [p. 8]. Electrical work must be done by qualified personnel [p. 5].
 
-### `deepseek` · 106 s · failed: cause_found, top_cause, safety
+### `gemma` · 302 s · failed: top_cause
 
-*intent* troubleshooting · *language* it · *verified* True · *causes* Load loss in the installation; Motor turning in wrong direction; Filter cap badly sealed; Wrong voltage; Pre-filter blocked; Pump incorrectly secured
+*intent* troubleshooting · *language* en · *verified* True · *causes* Wrong voltage; Motor blocked; Pre-filter blocked
 
-> 1. Verifica se il carico installato è corretto e se tutti i componenti possono evitare almeno la possibilità di causare una perdita di carico [p. 13].
-> 2. Controlla se il senso di rotazione del motore è corretto. Se è errato, inverti due fasi di potenza [p. 13].
-> 3. Pulizia il cappotto del filtro e verifica la condizione della gomma dello sterzo [p. 13].
-> 4. Controlla la tensione presente sul piatto diametrale e quella della presa di corrente [p. 13].
-> 5. Pulizia il pre-filtro [p. 13].
-> 6. Ricerca e risolvi eventuali problemi di fissaggio del motore [p. 13].
+> 1. Check the voltage on the rating plate and that of the mains [p. 13].
+> 2. Pre-filter blocked [p. 13]. Clean the filter.
+> 3. Motor blocked [p. 13]. Contact the technical service.
 > 
-> Se dopo aver verificato questi possibili problemi il motore continua a rumoreggiare ma non parte, contatta il servizio tecnico per ulteriore assistenza.
+> **Safety:** before any electrical or mechanical work, disconnect the pump from the mains, block all start-up devices, check there is no voltage and wait for the impeller to stop completely [p. 8]. Electrical work must be done by qualified personnel [p. 5].
 
-### `auto` · 91 s
+### `deepseek` · 204 s · failed: cause_found, top_cause, facts
 
-*intent* troubleshooting · *language* it · *verified* True · *causes* Motor blocked
+*intent* troubleshooting · *language* en · *verified* True · *causes* Motor turning in wrong direction; Wrong voltage; Increased temperature in the terminal box due to electric arc; The thermal protection trips
 
-> 1. Verifica se il motore è bloccato (alto) -> Rimuovi il motore e contatta il servizio tecnico [p. 13]
-> 2. Verifica se c'è un'alta differenza di pressione tra il motore e il punto di riscaldamento [p. 9]
-> 3. Verifica se c'è un'alta differenza di pressione tra il motore e il punto di riscaldamento [p. 9]
-> 4. Verifica se c'è un'alta differenza di pressione tra il motore e il punto di riscaldamento [p. 9]
-> 5. Verifica se c'è un'alta differenza di pressione tra il motore e il punto di riscaldamento [p. 9]
-> 6. Verifica se c'è un'alta differenza di pressione tra il motore e il punto di riscaldamento [p. 9]
-> 7. Verifica se c'è un'alta differenza di pressione tra il motore e il punto di riscaldamento [p. 9]
-> 8. Verifica se c'è un'alta differenza di pressione tra il motore e il punto di riscaldamento [p. 9]
-> 9. Verifica se c'è un'alta differenza di pressione tra il motore e il punto di riscaldamento [p. 9]
-> 10. Verifica se c'è un'alta differenza di pressione tra il motore e il punto di riscaldamento [p. 9]
+> 1. Check if the motor is turning in the correct direction. If not, invert 2 power phases as per [p. 13].
+> 2. Verify the voltage on the pump's rating plate and the mains voltage. If the voltage is incorrect, adjust to match the pump's requirements [p. 13].
+> 3. Inspect the terminal box for any signs of increased temperature due to electric arcs. If found, check the junction box connections and ensure they are secure [p. 13].
+> 4. If the thermal protection trips, ensure the cables are correctly connected to the junction boxes [p. 13].
 > 
-> **Safety:** prima di qualsiasi lavoro elettrico o meccanico, disconnetti il motore dalla rete e blocca tutti i dispositivi di avvio. Aspetta che l'impellente si ferma completamente [p. 8]. Il lavoro elettrico deve essere fatto da operai qualificati [p. 5].
+> Safety: Before performing any electrical work, disconnect the pump from the mains, block all start-up devices, check for voltage, and wait for the impeller to stop completely [p. 8]. Electrical work must be done by qualified personnel [p. 5].
 
-### `offline` · <0.1 s · failed: intent, answer_language, cause_found, top_cause, page_cited, facts
+### `auto` · 66 s
 
-*intent* general · *language* it · *verified* True
+*intent* troubleshooting · *language* en · *verified* True · *causes* Motor blocked
 
-> From the ASTRAL Pool manual:
-> - **1. General Safety Instructions:** ... pump's plate) with an earth connection, protected by a residual current device (RCD) with a rated residual operating current that does not exceed 30 mA. [p. 6]
+> The motor hums but the pump won't start. The likely cause is a motor blocked (high). The solution is to remove the motor and contact the technical service [p. 13].
+> 
+> **Safety:** before any electrical or mechanical work, disconnect the pump from the mains, block all start-up devices, check there is no voltage and wait for the impeller to stop completely [p. 8]. Electrical work must be done by qualified personnel [p. 5].
+
+### `offline` · <0.1 s
+
+*intent* troubleshooting · *language* en · *verified* True · *causes* Motor blocked
+
+> **Reported symptoms:** The motor is making a noise but will not start.
+> 
+> **Likely causes:**
+> 1. **Motor blocked** (high): Remove the motor and contact the technical service [p. 13]
+> 
+> **Check first:** Remove the motor and contact the technical service.
 > 
 > **Safety:** before any electrical or mechanical work, disconnect the pump from the mains, block all start-up devices, check there is no voltage and wait for the impeller to stop completely [p. 8]. Electrical work must be done by qualified personnel [p. 5].
 
@@ -646,7 +652,7 @@
 
 > I can only help with technical questions about installing, starting up, maintaining and troubleshooting the pool equipment covered by the product manuals.
 
-### `offline` · <0.1 s
+### `offline` · <0.1 s · failed: says_not_in_manual
 
 *intent* general · *language* en · *verified* True
 
