@@ -20,8 +20,6 @@ flowchart TD
     subgraph entry["Entry points: how a person runs it"]
         WEB["7_webapp.py<br/><i>Shiny chat</i>"]
         CLI["6_cli.py<br/><i>command line</i>"]
-        RUN["evaluation/run.py<br/><i>asks the test questions</i>"]
-        REP["evaluation/report.py<br/><i>scores the answers</i>"]
     end
 
     ORCH["5_orchestrator.py<br/><i>runs the 5 agents in order</i>"]
@@ -40,21 +38,9 @@ flowchart TD
 
     LLM["4_llm.py<br/><i>Ollama client</i>"]
 
-    subgraph data["Data files"]
-        PDF[("user_manual.pdf")]
-        CUR[("data/curated/*.json<br/>troubleshooting table")]
-        IDX[("data/index/chunks.jsonl")]
-        Q[("evaluation/questions.json")]
-        ANS[("evaluation/results/answers.jsonl")]
-    end
-
-    OLL{{"Ollama server<br/>qwen · llama · gemma · deepseek"}}
-
     WEB --> ORCH
     CLI --> ORCH
-    RUN --> ORCH
     WEB --> KNOW
-    REP --> COM
 
     ORCH --> INIT
     ORCH --> KNOW
@@ -66,14 +52,6 @@ flowchart TD
     A5 --> COM
     A1 & A2 & A3 & A4 --> KNOW
     A1 & A2 & A3 & A4 & A5 -.->|"chat() on the LLM object<br/>the orchestrator gives them"| LLM
-
-    LLM --> OLL
-
-    KNOW --> PDF & CUR
-    KNOW -- "writes, then reads" --> IDX
-    RUN --> Q
-    RUN -- writes --> ANS
-    REP --> Q & ANS
 ```
 
 Not drawn, to keep the graph readable: **almost every file imports `1_config.py`** (paths,
