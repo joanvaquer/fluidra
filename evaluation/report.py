@@ -2,8 +2,9 @@
 
     python evaluation/report.py
 
-Every check is automatic and objective (see CHECKS). findings.md, written by a person after
-reading the answers, is included at the top of the report if it exists.
+Every check is automatic and objective (see CHECKS). The "Findings" section of REPORT.md is
+written by a person after reading the answers: it is kept as it is, and only the rest of the
+report is regenerated.
 """
 
 import json
@@ -19,7 +20,6 @@ from pool_assistant.agents.common import cited_pages, has_safety_warning
 HERE = Path(__file__).parent
 QUESTIONS = HERE / "questions.json"
 ANSWERS = HERE / "results" / "answers.jsonl"
-FINDINGS = HERE / "findings.md"
 REPORT = HERE / "REPORT.md"
 ANSWERS_MD = HERE / "results" / "answers.md"
 
@@ -151,6 +151,15 @@ def seconds(s: float) -> str:
     return f"{s:.0f} s" if s >= 10 else f"{s:.1f} s" if s >= 0.1 else "<0.1 s"
 
 
+def written_findings() -> str:
+    """The "## Findings" section of the current REPORT.md (up to "## Summary"), or "" if none."""
+    if not REPORT.exists():
+        return ""
+    text = REPORT.read_text(encoding="utf-8")
+    start, end = text.find("## Findings"), text.find("## Summary")
+    return text[start:end].strip() if 0 <= start < end else ""
+
+
 def main():
     # --- load the questions and the answers, and score every answer ---
     questions = {q["id"]: q for q in json.loads(QUESTIONS.read_text(encoding="utf-8"))}
@@ -178,9 +187,10 @@ def main():
         "Re-run with `python evaluation/run.py`, then `python evaluation/report.py`.",
         "",
     ]
-    # the findings written by a person after reading the answers
-    if FINDINGS.exists():
-        out += [FINDINGS.read_text(encoding="utf-8").strip(), ""]
+    # the findings written by a person after reading the answers, kept from the current report
+    findings = written_findings()
+    if findings:
+        out += [findings, ""]
 
     # --- summary: one row per mode with its score, times, LLM calls and verified answers ---
     out += ["## Summary", "",

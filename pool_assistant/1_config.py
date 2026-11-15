@@ -41,7 +41,7 @@ MODELS = {
 AUTO = "auto"
 OFFLINE = "offline"
 MODES = (*MODELS, AUTO, OFFLINE)        # ("qwen", "llama", "gemma", "deepseek", "auto", "offline")
-AUTO_MODEL = "qwen"                    # the fastest model with reliable JSON
+AUTO_MODEL = "gemma"                   # the most accurate model in the evaluation
 AUTO_LLM_AGENTS = {"triage", "writer"}  # the agents that use the LLM in auto mode
 
 # --- limits ---

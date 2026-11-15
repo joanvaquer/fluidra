@@ -45,11 +45,11 @@
 > 
 > **Safety:** before any electrical or mechanical work, disconnect the pump from the mains, block all start-up devices, check there is no voltage and wait for the impeller to stop completely [p. 8]. Electrical work must be done by qualified personnel [p. 5].
 
-### `auto` · 33 s
+### `auto` · 65 s
 
 *intent* troubleshooting · *language* en · *verified* True · *causes* Pump incorrectly secured
 
-> The likely cause of the noise and vibration when the pump is on is that the pump is incorrectly secured [p. 13]. Secure the pump correctly to resolve the issue.
+> 1. Secure the pump correctly [p. 13].
 > 
 > **Safety:** before any electrical or mechanical work, disconnect the pump from the mains, block all start-up devices, check there is no voltage and wait for the impeller to stop completely [p. 8]. Electrical work must be done by qualified personnel [p. 5].
 
@@ -112,17 +112,16 @@
 > 
 > Si las causas mencionadas no resuelven el problema, considera que puede ser necesario consultar al Servicio de Asistencia Técnica.
 
-### `auto` · 79 s · failed: page_cited, facts
+### `auto` · 90 s
 
 *intent* troubleshooting · *language* es · *verified* True · *causes* Air entering the suction pipe; Motor turning in wrong direction; Wrong voltage; Pre-filter blocked; Load loss in the installation
 
-> 1. Verifique que la toma de agua del filtro esté correctamente conectada y sin daños.
-> 2. Compruebe que la tensión de alimentación está correcta en relación con la tensión de la placa de calibración.
-> 3. Verifique que el motor esté girando en la dirección correcta. Si no lo está, inverte los dos fases de alimentación.
-> 4. Limpie el filtro para asegurar que no esté obstruido.
-> 5. Asegúrese de que no haya pérdidas de carga en la instalación.
+> 1.  Verifique el voltaje en la placa de calificación y el voltaje de la red eléctrica. [p. 13]
+> 2.  Invierte las dos fases de energía. [p. 13]
+> 3.  Limpie el filtro. [p. 13]
+> 4.  Verifique el estado de las conexiones y sellos en la tubería de succión. [p. 13]
 > 
-> **Safety:** antes de cualquier trabajo eléctrico o mecánico, desconecte la bomba de las líneas de alimentación, bloquee todos los dispositivos de arranque y asegúrese de que no haya tensión. Espere hasta que el impulsor de la bomba deje de girar completamente [p. 8]. El trabajo eléctrico debe ser realizado por personal calificado [p. 5].
+> **Safety:** before any electrical or mechanical work, disconnect the pump from the mains, block all start-up devices, check there is no voltage and wait for the impeller to stop completely [p. 8]. Electrical work must be done by qualified personnel [p. 5].
 
 ### `offline` · <0.1 s · failed: intent, answer_language, cause_found, top_cause, page_cited, citations_valid, facts
 
@@ -174,14 +173,12 @@
 > 
 > **Safety:** before any electrical or mechanical work, disconnect the pump from the mains, block all start-up devices, check there is no voltage and wait for the impeller to stop completely [p. 8]. Electrical work must be done by qualified personnel [p. 5].
 
-### `auto` · 30 s · failed: language, answer_language, cause_found, top_cause, facts
+### `auto` · 80 s · failed: language, answer_language, cause_found, top_cause, facts
 
-*intent* troubleshooting · *language* es · *verified* True · *causes* Motor blocked
+*intent* troubleshooting · *language* fr · *verified* True · *causes* Motor blocked
 
-> 1. El motor está bloqueado.
-> 2. Contactar con el servicio técnico [p. 13].
-> 
-> **Safety:** antes de cualquier trabajo eléctrico, desconecte el motor de las líneas de alimentación, bloquee todos los dispositivos de arranque y espere a que la hélice pare completamente [p. 8]. Los trabajos eléctricos deben hacerse por personas calificadas [p. 5].
+> 1. Le moteur est bloqué [p. 13]. Retirez le moteur et contactez le service technique.
+> **Safety:** avant toute intervention électrique ou mécanique, débranchez la pompe du secteur, bloquez tous les dispositifs de démarrage, vérifiez l'absence de tension et attendez l'arrêt complet de l'impulseur [p. 8]. Le travail électrique doit être effectué par du personnel qualifié [p. 5].
 
 ### `offline` · <0.1 s · failed: intent, language, answer_language, cause_found, top_cause, page_cited
 
@@ -247,21 +244,17 @@
 > 
 > **Safety:** antes de cualquier trabajo eléctrico o mecánico, desconecte la bomba de la red eléctrica, bloque todo el dispositivo de arranque, verifique que no haya tensión y espere a que el impulsor se detenga completamente antes de comenzar.
 
-### `auto` · 119 s
+### `auto` · 94 s
 
 *intent* troubleshooting · *language* es · *verified* True · *causes* Wrong voltage
 
-> Las causas posibles son las siguientes:
+> 1.  Verifique el voltaje en la placa de calificación y el voltaje de la red eléctrica [p. 13].
 > 
-> 1. La tensión eléctrica está alta (wrong voltage) -> Compruebe la tensión en la etiqueta de calibración y que de la red de alimentación [p. 13].
+> 2.  Si el motor hace ruido pero no arranca, retire el motor y póngase en contacto con el servicio técnico [p. 13].
 > 
-> Después de identificar la causa, siga estos pasos:
+> 3.  Asegúrese de que el pre-filtro esté lleno de agua antes de arrancar la bomba [p. 11]. Si el pre-filtro no está lleno, la junta mecánica puede estar dañada, lo que provocará una pérdida de agua.
 > 
-> 1. Compruebe la tensión en la etiqueta de calibración y que de la red de alimentación [p. 13].
-> 2. Si la tensión está correcta, revise la instalación eléctrica y asegúrese de que el motor está correctamente conectado y protegido contra contactos eléctricos y mecánicos [p. 7].
-> 3. Si el motor está bloqueado, retire el motor y contacte al servicio técnico [p. 13].
-> 
-> **Safety:** antes de cualquier trabajo eléctrico o mecánico, desconecte la bomba de la red, bloquee todos los dispositivos de arranque y espere hasta que el impulsor pare completamente [p. 8]. Los trabajos eléctricos deben hacerse por personal calificado [p. 5].
+> **Safety:** before any electrical or mechanical work, disconnect the pump from the mains, block all start-up devices, check there is no voltage and wait for the impeller to stop completely [p. 8]. Electrical work must be done by qualified personnel [p. 5].
 
 ### `offline` · <0.1 s · failed: answer_language, facts
 
@@ -332,12 +325,12 @@
 > 
 > Safety: Before performing any electrical work, disconnect the pump from the mains, block all start-up devices, check for voltage, and wait for the impeller to stop completely [p. 8]. Electrical work must be done by qualified personnel [p. 5].
 
-### `auto` · 66 s
+### `auto` · 71 s · failed: cause_found, top_cause
 
-*intent* troubleshooting · *language* en · *verified* True · *causes* Motor blocked
+*intent* troubleshooting · *language* en · *verified* True · *causes* Wrong voltage
 
-> The motor hums but the pump won't start. The likely cause is a motor blocked (high). The solution is to remove the motor and contact the technical service [p. 13].
-> 
+> 1. Check the voltage on the rating plate and that of the mains [p. 13].
+> 2. Remove the motor and contact the technical service [p. 13].
 > **Safety:** before any electrical or mechanical work, disconnect the pump from the mains, block all start-up devices, check there is no voltage and wait for the impeller to stop completely [p. 8]. Electrical work must be done by qualified personnel [p. 5].
 
 ### `offline` · <0.1 s
@@ -396,11 +389,13 @@
 > 
 > **Safety:** Wiederholen Sie die oben genannten Schritte, wenn Sie den Motor wieder einbauen [p. 8].
 
-### `auto` · 16 s · failed: scope, intent, answer_language, page_cited, citations_valid, facts
+### `auto` · 78 s · failed: intent
 
-*intent* out_of_scope · *language* de · *verified* True
+*intent* troubleshooting · *language* de · *verified* True · *causes* Air entering the suction pipe; Filter cap badly sealed; Motor turning in wrong direction; Wrong voltage
 
-> I can only help with technical questions about installing, starting up, maintaining and troubleshooting the pool equipment covered by the product manuals.
+> Die Gleitringdichtung und die Lager müssen jährlich gewechselt werden [p. 12]. Zusätzlich müssen die O-Ringe und andere Dichtelemente ebenfalls jährlich ausgetauscht werden [p. 12]. Wenn die mechanische Dichtung oder die Lager ausgetauscht werden, sollten auch die O-Ringe und Dichtelemente ersetzt werden [p. 12].
+> 
+> **Safety:** before any electrical or mechanical work, disconnect the pump from the mains, block all start-up devices, check there is no voltage and wait for the impeller to stop completely [p. 8]. Electrical work must be done by qualified personnel [p. 5].
 
 ### `offline` · <0.1 s · failed: scope, intent, answer_language, page_cited, citations_valid, facts
 
@@ -464,16 +459,14 @@
 > 
 > Safety: Before any electrical or mechanical work, disconnect the pump from the mains, block all start-up devices, check there is no voltage and wait for the impeller to stop completely [p. 8]. Electrical work must be done by qualified personnel [p. 5].
 
-### `auto` · 95 s · failed: page_cited, facts
+### `auto` · 78 s · failed: intent, page_cited, facts
 
-*intent* maintenance · *language* en · *verified* True
+*intent* troubleshooting · *language* en · *verified* True · *causes* Air entering the suction pipe; Filter cap badly sealed; Motor turning in wrong direction; Wrong voltage
 
-> Before the winter, you should do the following to prepare your pool pump for storage:
-> 
-> 1. Clean the seal and its housing of any impurities to ensure airtightness when the cap is closed (p. 12).
-> 2. Replace the capacitor, bearings, and mechanical seal, as they suffer wear and tear due to normal use (p. 12).
-> 3. Replace the O-rings and other sealing components (p. 12).
-> 4. Disconnect the pump from the mains, block all start-up devices, check there is no voltage, and wait for the impeller to stop completely [p. 8]. Electrical work must be done by qualified personnel [p. 5].
+> 1.  Check the condition of connections and seals on the suction pipe [p. 13].
+> 2.  Clean the filter cap and check the condition of the rubber seal [p. 13].
+> 3.  Check the voltage on the rating plate and that of the mains [p. 13].
+> 4.  Invert 2 power phases [p. 13].
 > 
 > **Safety:** before any electrical or mechanical work, disconnect the pump from the mains, block all start-up devices, check there is no voltage and wait for the impeller to stop completely [p. 8]. Electrical work must be done by qualified personnel [p. 5].
 
@@ -547,24 +540,16 @@
 > 
 > Se você estiver inseguro sobre como configurar a bomba, recomendamos entrar em contato com o Serviço de Assistência Técnica.
 
-### `auto` · 194 s · failed: page_cited
+### `auto` · 92 s · failed: intent
 
-*intent* start_up · *language* pt · *verified* True
+*intent* troubleshooting · *language* pt · *verified* True · *causes* Air entering the suction pipe; Motor turning in wrong direction; Wrong voltage; Pre-filter blocked; Load loss in the installation
 
-> Para iniciar a bomba pela primeira vez, siga os seguintes passos:
+> 1. Verifique se a tensão indicada na placa de avaliação do equipamento corresponde à tensão da rede elétrica [p. 13].
+> 2. Verifique se o pré-filtro está limpo. Limpe o filtro [p. 13].
+> 3. Verifique se o motor está a girar na direção correta, utilizando a ventoinha localizada na parte traseira do motor [p. 11]. Se necessário, inverta 2 fases de energia [p. 13].
+> 4. Certifique-se de que a tampa do pré-filtro está devidamente instalada e vedada [p. 11].
 > 
-> 1. Verifique a conexão elétrica e certifique-se de que a tomada está adequada e segura. [p. 10]
-> 2. Verifique a instalação e conexão do cabo de terra no equipamento. [p. 10]
-> 3. Verifique a configuração do interruptor de curto-circuito de terra de acordo com a intensidade da bomba. [p. 10]
-> 4. Verifique a configuração do fusível conforme a necessidade. [p. 10]
-> 5. Desconecte a bomba da tomada de energia. [p. 8]
-> 6. Verifique se há tensão no circuito. [p. 8]
-> 7. Aguarde até que a bomba pare completamente. [p. 8]
-> 8. Verifique se os componentes mecânicos, como os rolamentos e o selo mecânico, foram substituídos conforme o intervalo de tempo listado na tabela. [p. 12]
-> 9. Verifique se os componentes plásticos, como os rolamentos e os selos, foram substituídos conforme o intervalo de tempo listado na tabela. [p. 12]
-> 10. Verifique se os componentes plásticos, como os rolamentos e os selos, foram substituídos conforme o intervalo de tempo listado na tabela. [p. 12]
-> 
-> **Safety:** antes de qualquer trabalho elétrico ou mecânico, desconecte a bomba da tomada de energia, bloquee todos os dispositivos de iniciação, verifique se não há tensão e aguarde até que o impeller pare completamente [p. 8]. Trabalhos elétricos devem ser feitos por profissionais qualificados [p. 5].
+> **Safety:** before any electrical or mechanical work, disconnect the pump from the mains, block all start-up devices, check there is no voltage and wait for the impeller to stop completely [p. 8]. Electrical work must be done by qualified personnel [p. 5].
 
 ### `offline` · <0.1 s · failed: intent, answer_language, page_cited, facts
 
@@ -604,7 +589,7 @@
 
 > I can only help with technical questions about installing, starting up, maintaining and troubleshooting the pool equipment covered by the product manuals.
 
-### `auto` · 12 s
+### `auto` · 18 s
 
 *intent* out_of_scope · *language* es · *verified* True
 
@@ -646,11 +631,13 @@
 
 > I can only help with technical questions about installing, starting up, maintaining and troubleshooting the pool equipment covered by the product manuals.
 
-### `auto` · 12 s
+### `auto` · 84 s
 
-*intent* out_of_scope · *language* en · *verified* True
+*intent* general · *language* en · *verified* True
 
-> I can only help with technical questions about installing, starting up, maintaining and troubleshooting the pool equipment covered by the product manuals.
+> The manual does not specify the warranty period for the ASTRAL pump. It only states that failure to follow electrical installation instructions may void the warranty [p. 10]. It also lists the lifespan of consumable components, but not the overall warranty period [p. 12].
+> 
+> **Safety:** before any electrical or mechanical work, disconnect the pump from the mains, block all start-up devices, check there is no voltage and wait for the impeller to stop completely [p. 8]. Electrical work must be done by qualified personnel [p. 5].
 
 ### `offline` · <0.1 s · failed: says_not_in_manual
 

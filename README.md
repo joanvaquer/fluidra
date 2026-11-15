@@ -10,7 +10,7 @@ Fluidra products, grounded in the official product manuals. The knowledge source
 - **Six modes, always chosen by the user**:
   - `qwen`, `llama`, `gemma`, `deepseek`: free LLMs run locally by [Ollama](https://ollama.com).
     Every agent makes its decisions with that model. No paid services or API keys.
-  - `auto`: the LLM (`qwen`) only where language understanding matters, triage and writer.
+  - `auto`: the LLM (`gemma`) only where language understanding matters, triage and writer.
     Retriever, diagnostician and verifier use search and fixed rules. Two LLM calls per
     question instead of five, and the citation and safety checks are rules a model can't skip.
   - `offline`: every agent uses word matching and fixed rules, with no LLM.
@@ -80,7 +80,7 @@ python -m pool_assistant.knowledge
 | `llama` | `llama3.2:3b` | 2.0 GB | Meta. |
 | `gemma` | `gemma3:4b` | 3.3 GB | Google. |
 | `deepseek` | `deepseek-v2:16b` | 8.9 GB | DeepSeek. Mixture of experts: uses ~2.4B parameters per token, so it runs about as fast as the others on CPU, but needs ~10 GB of RAM. |
-| `auto` | `qwen2.5:3b` | 1.9 GB | The LLM for triage and writer only (`AUTO_MODEL` in 1_config.py). |
+| `auto` | `gemma3:4b` | 3.3 GB | The LLM for triage and writer only (`AUTO_MODEL` in 1_config.py). |
 | `offline` | none | — | No Ollama needed. Answers in milliseconds, English templates only. |
 
 To use a different size (e.g. `llama3.1:8b`), change its tag in `MODELS` in

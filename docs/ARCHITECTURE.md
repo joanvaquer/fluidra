@@ -18,7 +18,7 @@ between them:
 - **`qwen`, `llama`, `gemma`, `deepseek`**: free local LLMs run with **Ollama** (no paid
   services, as the brief requires). **Every agent makes its decisions with that model.** If a
   call fails, the question fails with an error, so the user knows which mode produced an answer.
-- **`auto`**: the LLM (`qwen`, `AUTO_MODEL` in 1_config.py) only for **triage and writer**, the
+- **`auto`**: the LLM (`gemma`, `AUTO_MODEL` in 1_config.py) only for **triage and writer**, the
   two steps that need language understanding. **Retriever, diagnostician and verifier** use
   the offline implementations (§ 2.1.1).
 - **`offline`**: every agent uses word matching and fixed rules, with no LLM. Instant and
